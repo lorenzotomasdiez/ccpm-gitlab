@@ -18,8 +18,8 @@ Only check what's absolutely necessary:
 1. If command needs specific directory/file:
    - Check it exists: `test -f {file} || echo "❌ {file} not found"`
    - If missing, tell user exact command to fix it
-2. If command needs GitHub:
-   - Assume `gh` is authenticated (it usually is)
+2. If command needs GitLab:
+   - Assume `glab` is authenticated (it usually is)
    - Only check on actual failure
 ```
 
@@ -76,18 +76,18 @@ else
 fi
 ```
 
-## GitHub Operations
+## GitLab Operations
 
-### Trust gh CLI
+### Trust glab CLI
 ```markdown
 # Don't pre-check auth, just try the operation
-gh {command} || echo "❌ GitHub CLI failed. Run: gh auth login"
+glab {command} || echo "❌ GitLab CLI failed. Run: glab auth login"
 ```
 
 ### Simple Issue Operations
 ```markdown
 # Get what you need in one call
-gh issue view {number} --json state,title,body
+glab issue view {iid} --output json
 ```
 
 ## Common Patterns to Avoid
@@ -98,7 +98,7 @@ gh issue view {number} --json state,title,body
 1. Check directory exists
 2. Check permissions
 3. Check git status
-4. Check GitHub auth
+4. Check GitLab auth
 5. Check rate limits
 6. Validate every field
 ```
@@ -149,7 +149,7 @@ Failed: auth.test.js (syntax error - line 42)
 ### Essential Tools Only
 - Read/List operations: `Read, LS`
 - File creation: `Read, Write, LS`
-- GitHub operations: Add `Bash`
+- GitLab operations: Add `Bash`
 - Complex analysis: Add `Task` (sparingly)
 
 ### Status Indicators
@@ -167,7 +167,7 @@ Failed: auth.test.js (syntax error - line 42)
 
 **Simple is not simplistic** - We still handle errors properly, we just don't try to prevent every possible edge case. We trust that:
 - The file system usually works
-- GitHub CLI is usually authenticated  
+- GitLab CLI is usually authenticated
 - Git repositories are usually valid
 - Users know what they're doing
 

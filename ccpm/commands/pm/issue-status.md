@@ -13,12 +13,12 @@ Check issue status (open/closed) and current state.
 
 ## Instructions
 
-You are checking the current status of a GitHub issue and providing a quick status report for: **Issue #$ARGUMENTS**
+You are checking the current status of a GitLab issue and providing a quick status report for: **Issue #$ARGUMENTS**
 
 ### 1. Fetch Issue Status
-Use GitHub CLI to get current status:
+Use GitLab CLI to get current status:
 ```bash
-gh issue view #$ARGUMENTS --json state,title,labels,assignees,updatedAt
+glab issue view #$ARGUMENTS --output json
 ```
 
 ### 2. Status Display
@@ -65,8 +65,8 @@ Based on status, suggest actions:
 🚀 Suggested Actions:
    - Start work: /pm:issue-start $ARGUMENTS
    - Sync updates: /pm:issue-sync $ARGUMENTS
-   - Close issue: gh issue close #$ARGUMENTS
-   - Reopen issue: gh issue reopen #$ARGUMENTS
+   - Close issue: glab issue close #$ARGUMENTS
+   - Reopen issue: glab issue reopen #$ARGUMENTS
 ```
 
 ### 7. Batch Status

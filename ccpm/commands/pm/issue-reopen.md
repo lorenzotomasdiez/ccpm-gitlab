@@ -15,7 +15,7 @@ Reopen a closed issue.
 
 ### 1. Find Local Task File
 
-Search for task file with `github:.*issues/$ARGUMENTS` in frontmatter.
+Search for task file with `gitlab:.*issues/$ARGUMENTS` in frontmatter.
 If not found: "❌ No local task for issue #$ARGUMENTS"
 
 ### 2. Update Local Status
@@ -35,19 +35,22 @@ If progress file exists:
 - Reset completion to previous value or 0%
 - Add note about reopening with reason
 
-### 4. Reopen on GitHub
+### 4. Reopen on GitLab
 
 ```bash
 # Reopen with comment
-echo "🔄 Reopening issue
+glab issue note $ARGUMENTS --message "$(cat <<'EOF'
+🔄 Reopening issue
 
 Reason: $ARGUMENTS
 
 ---
-Reopened at: {timestamp}" | gh issue comment $ARGUMENTS --body-file -
+Reopened at: {timestamp}
+EOF
+)"
 
 # Reopen the issue
-gh issue reopen $ARGUMENTS
+glab issue reopen $ARGUMENTS
 ```
 
 ### 5. Update Epic Progress

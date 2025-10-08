@@ -4,7 +4,7 @@ allowed-tools: Bash, Read, Write, LS
 
 # Import
 
-Import existing GitHub issues into the PM system.
+Import existing GitLab issues into the PM system.
 
 ## Usage
 ```
@@ -18,21 +18,21 @@ Options:
 
 ## Instructions
 
-### 1. Fetch GitHub Issues
+### 1. Fetch GitLab Issues
 
 ```bash
 # Get issues based on filters
 if [[ "$ARGUMENTS" == *"--label"* ]]; then
-  gh issue list --label "{label}" --limit 1000 --json number,title,body,state,labels,createdAt,updatedAt
+  glab issue list --label "{label}" --per-page 1000 --output json
 else
-  gh issue list --limit 1000 --json number,title,body,state,labels,createdAt,updatedAt
+  glab issue list --per-page 1000 --output json
 fi
 ```
 
 ### 2. Identify Untracked Issues
 
-For each GitHub issue:
-- Search local files for matching github URL
+For each GitLab issue:
+- Search local files for matching gitlab URL
 - If not found, it's untracked and needs import
 
 ### 3. Categorize Issues
@@ -50,22 +50,22 @@ For each issue to import:
 **If Epic:**
 ```bash
 mkdir -p .claude/epics/{epic_name}
-# Create epic.md with GitHub content and frontmatter
+# Create epic.md with GitLab content and frontmatter
 ```
 
 **If Task:**
 ```bash
 # Find next available number (001.md, 002.md, etc.)
-# Create task file with GitHub content
+# Create task file with GitLab content
 ```
 
 Set frontmatter:
 ```yaml
 name: {issue_title}
-status: {open|closed based on GitHub}
-created: {GitHub createdAt}
-updated: {GitHub updatedAt}
-github: https://github.com/{org}/{repo}/issues/{number}
+status: {open|closed based on GitLab}
+created: {GitLab createdAt}
+updated: {GitLab updatedAt}
+gitlab: https://gitlab.com/-/issues/{iid}
 imported: true
 ```
 
@@ -93,6 +93,6 @@ Next steps:
 
 ## Important Notes
 
-Preserve all GitHub metadata in frontmatter.
+Preserve all GitLab metadata in frontmatter.
 Mark imported files with `imported: true` flag.
 Don't overwrite existing local files.

@@ -8,7 +8,7 @@ This specification defines file path usage standards within the Claude Code PM s
 ### 1. Privacy Protection
 - **Prohibit** absolute paths containing usernames
 - **Prohibit** exposing local directory structure in public documentation  
-- **Prohibit** including complete local paths in GitHub Issue comments
+- **Prohibit** including complete local paths in GitLab Issue notes
 
 ### 2. Portability Principles
 - **Prefer** relative paths for referencing project files
@@ -88,7 +88,7 @@ normalize_paths() {
 
 ### epic-sync Command Updates
 - Standardize task file paths
-- Clean GitHub issue body paths
+- Clean GitLab issue body paths
 - Use relative paths in mapping files
 
 ## Validation Checks
@@ -101,7 +101,7 @@ check_absolute_paths() {
   rg -n "/Users/|/home/|C:\\\\\\\\" .claude/ || echo "✅ No absolute paths found"
 }
 
-# Check GitHub sync content
+# Check GitLab sync content
 check_sync_content() {
   echo "Checking sync content path formats..."
   # Implement specific check logic
@@ -109,7 +109,7 @@ check_sync_content() {
 ```
 
 ### Manual Review Checklist
-- [ ] GitHub Issue comments contain no absolute paths
+- [ ] GitLab Issue notes contain no absolute paths
 - [ ] Local documentation uses relative paths consistently
 - [ ] Code comment paths follow standards
 - [ ] Configuration file paths are standardized
@@ -123,7 +123,7 @@ check_sync_content() {
 
 ### Emergency Procedures
 If privacy information has been leaked:
-1. Immediately edit GitHub Issues/comments
+1. Immediately edit GitLab Issues/notes
 2. Clean Git history if necessary
 3. Update related documentation and templates
 4. Establish monitoring to prevent recurrence
@@ -139,16 +139,16 @@ If privacy information has been leaked:
 - ✅ Implemented `../project-name/internal/auth/server.go` core logic
 ```
 
-### GitHub Comment Format
+### GitLab Note Format
 ```markdown
 # Correct Format ✅
 ## 📦 Deliverables
 - `internal/formatter/batch.go` - Batch formatter
-- `internal/processor/sorter.go` - Sorting algorithm  
+- `internal/processor/sorter.go` - Sorting algorithm
 - `cmd/server/main.go` - Server entry point
 
 # Incorrect Format ❌
-## 📦 Deliverables  
+## 📦 Deliverables
 - `/Users/username/parent-dir/project-name/internal/formatter/batch.go`
 ```
 

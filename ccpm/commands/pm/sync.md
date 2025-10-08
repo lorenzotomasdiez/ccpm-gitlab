@@ -4,7 +4,7 @@ allowed-tools: Bash, Read, Write, LS
 
 # Sync
 
-Full bidirectional sync between local and GitHub.
+Full bidirectional sync between local and GitLab.
 
 ## Usage
 ```
@@ -15,40 +15,40 @@ If epic_name provided, sync only that epic. Otherwise sync all.
 
 ## Instructions
 
-### 1. Pull from GitHub
+### 1. Pull from GitLab
 
 Get current state of all issues:
 ```bash
 # Get all epic and task issues
-gh issue list --label "epic" --limit 1000 --json number,title,state,body,labels,updatedAt
-gh issue list --label "task" --limit 1000 --json number,title,state,body,labels,updatedAt
+glab issue list --label "epic" --per-page 1000 --output json
+glab issue list --label "task" --per-page 1000 --output json
 ```
 
-### 2. Update Local from GitHub
+### 2. Update Local from GitLab
 
-For each GitHub issue:
-- Find corresponding local file by issue number
+For each GitLab issue:
+- Find corresponding local file by issue iid
 - Compare states:
-  - If GitHub state newer (updatedAt > local updated), update local
-  - If GitHub closed but local open, close local
-  - If GitHub reopened but local closed, reopen local
-- Update frontmatter to match GitHub state
+  - If GitLab state newer (updatedAt > local updated), update local
+  - If GitLab closed but local open, close local
+  - If GitLab reopened but local closed, reopen local
+- Update frontmatter to match GitLab state
 
-### 3. Push Local to GitHub
+### 3. Push Local to GitLab
 
 For each local task/epic:
-- If has GitHub URL but GitHub issue not found, it was deleted - mark local as archived
-- If no GitHub URL, create new issue (like epic-sync)
-- If local updated > GitHub updatedAt, push changes:
+- If has GitLab URL but GitLab issue not found, it was deleted - mark local as archived
+- If no GitLab URL, create new issue (like epic-sync)
+- If local updated > GitLab updatedAt, push changes:
   ```bash
-  gh issue edit {number} --body-file {local_file}
+  glab issue update {iid} --description "$(cat {local_file})"
   ```
 
 ### 4. Handle Conflicts
 
-If both changed (local and GitHub updated since last sync):
+If both changed (local and GitLab updated since last sync):
 - Show both versions
-- Ask user: "Local and GitHub both changed. Keep: (local/github/merge)?"
+- Ask user: "Local and GitLab both changed. Keep: (local/gitlab/merge)?"
 - Apply user's choice
 
 ### 5. Update Sync Timestamps
@@ -60,14 +60,14 @@ Update all synced files with last_sync timestamp.
 ```
 🔄 Sync Complete
 
-Pulled from GitHub:
+Pulled from GitLab:
   Updated: {count} files
   Closed: {count} issues
-  
-Pushed to GitHub:
+
+Pushed to GitLab:
   Updated: {count} issues
   Created: {count} new issues
-  
+
 Conflicts resolved: {count}
 
 Status:
@@ -77,6 +77,6 @@ Status:
 
 ## Important Notes
 
-Follow `/rules/github-operations.md` for GitHub commands.
+Follow `/rules/gitlab-operations.md` for GitLab commands.
 Follow `/rules/frontmatter-operations.md` for local updates.
 Always backup before sync in case of issues.

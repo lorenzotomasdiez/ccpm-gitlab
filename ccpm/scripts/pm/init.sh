@@ -13,8 +13,9 @@ echo " ╚═════╝ ╚═════╝╚═╝     ╚═╝     �
 echo "┌─────────────────────────────────┐"
 echo "│ Claude Code Project Management  │"
 echo "│ by https://x.com/aroussi        │"
+echo "│ GitLab Edition                  │"
 echo "└─────────────────────────────────┘"
-echo "https://github.com/automazeio/ccpm"
+echo "https://gitlab.com/automazeio/ccpm-gitlab"
 echo ""
 echo ""
 
@@ -25,43 +26,39 @@ echo ""
 # Check for required tools
 echo "🔍 Checking dependencies..."
 
-# Check gh CLI
-if command -v gh &> /dev/null; then
-  echo "  ✅ GitHub CLI (gh) installed"
+# Check glab CLI
+if command -v glab &> /dev/null; then
+  echo "  ✅ GitLab CLI (glab) installed"
 else
-  echo "  ❌ GitHub CLI (gh) not found"
+  echo "  ❌ GitLab CLI (glab) not found"
   echo ""
-  echo "  Installing gh..."
+  echo "  Installing glab..."
   if command -v brew &> /dev/null; then
-    brew install gh
+    brew install glab
   elif command -v apt-get &> /dev/null; then
-    sudo apt-get update && sudo apt-get install gh
+    # Add GitLab package repository
+    curl -s https://packages.gitlab.com/install/repositories/gitlab/glab/script.deb.sh | sudo bash
+    sudo apt-get install glab
   else
-    echo "  Please install GitHub CLI manually: https://cli.github.com/"
+    echo "  Please install GitLab CLI manually: https://gitlab.com/gitlab-org/cli"
     exit 1
   fi
 fi
 
-# Check gh auth status
+# Check glab auth status
 echo ""
-echo "🔐 Checking GitHub authentication..."
-if gh auth status &> /dev/null; then
-  echo "  ✅ GitHub authenticated"
+echo "🔐 Checking GitLab authentication..."
+if glab auth status &> /dev/null; then
+  echo "  ✅ GitLab authenticated"
 else
-  echo "  ⚠️ GitHub not authenticated"
-  echo "  Running: gh auth login"
-  gh auth login
+  echo "  ⚠️ GitLab not authenticated"
+  echo "  Running: glab auth login"
+  glab auth login
 fi
 
-# Check for gh-sub-issue extension
+# GitLab has native issue linking - no extensions needed!
 echo ""
-echo "📦 Checking gh extensions..."
-if gh extension list | grep -q "yahsan2/gh-sub-issue"; then
-  echo "  ✅ gh-sub-issue extension installed"
-else
-  echo "  📥 Installing gh-sub-issue extension..."
-  gh extension install yahsan2/gh-sub-issue
-fi
+echo "✅ GitLab native issue linking available (no extensions needed)"
 
 # Create directory structure
 echo ""
@@ -94,48 +91,49 @@ if git rev-parse --git-dir > /dev/null 2>&1; then
     echo "  ✅ Remote configured: $remote_url"
     
     # Check if remote is the CCPM template repository
-    if [[ "$remote_url" == *"automazeio/ccpm"* ]] || [[ "$remote_url" == *"automazeio/ccpm.git"* ]]; then
+    if [[ "$remote_url" == *"automazeio/ccpm"* ]] || [[ "$remote_url" == *"automazeio/ccpm-gitlab"* ]]; then
       echo ""
       echo "  ⚠️ WARNING: Your remote origin points to the CCPM template repository!"
       echo "  This means any issues you create will go to the template repo, not your project."
       echo ""
       echo "  To fix this:"
-      echo "  1. Fork the repository or create your own on GitHub"
+      echo "  1. Fork the repository or create your own on GitLab"
       echo "  2. Update your remote:"
-      echo "     git remote set-url origin https://github.com/YOUR_USERNAME/YOUR_REPO.git"
+      echo "     git remote set-url origin https://gitlab.com/YOUR_USERNAME/YOUR_REPO.git"
       echo ""
     else
-      # Create GitHub labels if this is a GitHub repository
-      if gh repo view &> /dev/null; then
+      # Create GitLab labels if this is a GitLab repository
+      if glab repo view &> /dev/null; then
         echo ""
-        echo "🏷️ Creating GitHub labels..."
-        
+        echo "🏷️ Creating GitLab labels..."
+
         # Create base labels with improved error handling
         epic_created=false
         task_created=false
-        
-        if gh label create "epic" --color "0E8A16" --description "Epic issue containing multiple related tasks" --force 2>/dev/null; then
+
+        # Note: GitLab requires # prefix for colors
+        if glab label create "epic" --color "#0E8A16" --description "Epic issue containing multiple related tasks" 2>/dev/null; then
           epic_created=true
-        elif gh label list 2>/dev/null | grep -q "^epic"; then
+        elif glab label list 2>/dev/null | grep -q "^epic"; then
           epic_created=true  # Label already exists
         fi
-        
-        if gh label create "task" --color "1D76DB" --description "Individual task within an epic" --force 2>/dev/null; then
+
+        if glab label create "task" --color "#1D76DB" --description "Individual task within an epic" 2>/dev/null; then
           task_created=true
-        elif gh label list 2>/dev/null | grep -q "^task"; then
+        elif glab label list 2>/dev/null | grep -q "^task"; then
           task_created=true  # Label already exists
         fi
-        
+
         # Report results
         if $epic_created && $task_created; then
-          echo "  ✅ GitHub labels created (epic, task)"
+          echo "  ✅ GitLab labels created (epic, task)"
         elif $epic_created || $task_created; then
-          echo "  ⚠️ Some GitHub labels created (epic: $epic_created, task: $task_created)"
+          echo "  ⚠️ Some GitLab labels created (epic: $epic_created, task: $task_created)"
         else
-          echo "  ❌ Could not create GitHub labels (check repository permissions)"
+          echo "  ❌ Could not create GitLab labels (check repository permissions)"
         fi
       else
-        echo "  ℹ️ Not a GitHub repository - skipping label creation"
+        echo "  ℹ️ Not a GitLab repository - skipping label creation"
       fi
     fi
   else
@@ -178,9 +176,8 @@ echo "✅ Initialization Complete!"
 echo "=========================="
 echo ""
 echo "📊 System Status:"
-gh --version | head -1
-echo "  Extensions: $(gh extension list | wc -l) installed"
-echo "  Auth: $(gh auth status 2>&1 | grep -o 'Logged in to [^ ]*' || echo 'Not authenticated')"
+glab --version | head -1
+echo "  Auth: $(glab auth status 2>&1 | grep -o 'Logged in to [^ ]*' || echo 'Not authenticated')"
 echo ""
 echo "🎯 Next Steps:"
 echo "  1. Create your first PRD: /pm:prd-new <feature-name>"

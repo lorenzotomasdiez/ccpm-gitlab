@@ -1,4 +1,49 @@
-# CCPM Changelog
+# CCPM Changelog - GitLab Edition
+
+## [2025-10-08] - GitLab Edition Fork
+
+### 🎯 Overview
+Complete migration of CCPM from GitHub to GitLab, replacing all GitHub integrations with native GitLab support. This fork maintains all original functionality while leveraging GitLab's superior issue relationships and unified DevOps platform.
+
+### ✨ Major Changes
+- **Complete GitLab Migration**
+  - Replaced `gh` CLI with `glab` CLI throughout entire codebase
+  - Updated 43 references across 14 files
+  - Migrated all command files, scripts, and documentation
+  - Native GitLab issue linking (no extensions required)
+
+- **Simplified Installation**
+  - One-line installation command using git clone
+  - No external hosting dependencies
+  - Fast setup with `--depth 1` clone
+
+- **Updated Terminology**
+  - GitHub → GitLab across all documentation
+  - Issue "comments" → "notes" in API interactions
+  - Issue `number` → `iid` (internal ID)
+  - Issue state `open` → `opened`
+
+### 🔄 Technical Changes
+- **CLI Commands**: All `gh` commands replaced with `glab` equivalents
+- **URLs**: Updated from `github.com/owner/repo/issues/N` to `gitlab.com/owner/repo/-/issues/N`
+- **Authentication**: `glab auth login` instead of `gh auth login`
+- **Issue Creation**: Uses `glab issue create --description` with native linking
+- **Frontmatter**: `github:` field replaced with `gitlab:` field
+
+### 📝 Documentation Updates
+- README.md: Complete GitLab Edition branding
+- CLAUDE.md: Updated all GitHub references to GitLab
+- All command files migrated to GitLab syntax
+- Installation guide simplified
+
+### 🔗 Links
+- **GitLab Edition Repository**: https://github.com/lorenzotomasdiez/ccpm-gitlab
+- **Original Project**: https://github.com/automazeio/ccpm
+- **Author**: [Lorenzo Tomas Diez](https://github.com/lorenzotomasdiez)
+
+---
+
+## Original Project History
 
 ## [2025-01-24] - Major Cleanup & Issue Resolution Release
 

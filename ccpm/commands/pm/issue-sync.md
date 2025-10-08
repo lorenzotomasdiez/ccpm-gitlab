@@ -4,7 +4,7 @@ allowed-tools: Bash, Read, Write, LS
 
 # Issue Sync
 
-Push local updates as GitHub issue comments for transparent audit trail.
+Push local updates as GitLab issue comments for transparent audit trail.
 
 ## Usage
 ```
@@ -22,22 +22,22 @@ Before proceeding, complete these validation steps.
 Do not bother the user with preflight checks progress ("I'm not going to ..."). Just do them and move on.
 
 0. **Repository Protection Check:**
-   Follow `/rules/github-operations.md` - check remote origin:
+   Follow `/rules/gitlab-operations.md` - check remote origin:
    ```bash
    remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-   if [[ "$remote_url" == *"automazeio/ccpm"* ]]; then
+   if [[ "$remote_url" == *"automazeio/ccpm"* ]] || [[ "$remote_url" == *"ccpm-gitlab"* ]]; then
      echo "❌ ERROR: Cannot sync to CCPM template repository!"
-     echo "Update your remote: git remote set-url origin https://github.com/YOUR_USERNAME/YOUR_REPO.git"
+     echo "Update your remote: git remote set-url origin https://gitlab.com/YOUR_USERNAME/YOUR_REPO.git"
      exit 1
    fi
    ```
 
-1. **GitHub Authentication:**
-   - Run: `gh auth status`
-   - If not authenticated, tell user: "❌ GitHub CLI not authenticated. Run: gh auth login"
+1. **GitLab Authentication:**
+   - Run: `glab auth status`
+   - If not authenticated, tell user: "❌ GitLab CLI not authenticated. Run: glab auth login"
 
 2. **Issue Validation:**
-   - Run: `gh issue view $ARGUMENTS --json state`
+   - Run: `glab issue view $ARGUMENTS --output json`
    - If issue doesn't exist, tell user: "❌ Issue #$ARGUMENTS not found"
    - If issue is closed and completion < 100%, warn: "⚠️ Issue is closed but work incomplete"
 
@@ -59,7 +59,7 @@ Do not bother the user with preflight checks progress ("I'm not going to ..."). 
 
 ## Instructions
 
-You are synchronizing local development progress to GitHub as issue comments for: **Issue #$ARGUMENTS**
+You are synchronizing local development progress to GitLab as issue comments for: **Issue #$ARGUMENTS**
 
 ### 1. Gather Local Updates
 Collect all local updates for the issue:
@@ -123,10 +123,10 @@ Create comprehensive update comment:
 *Progress: {completion}% | Synced from local updates at {timestamp}*
 ```
 
-### 5. Post to GitHub
-Use GitHub CLI to add comment:
+### 5. Post to GitLab
+Use GitLab CLI to add comment:
 ```bash
-gh issue comment #$ARGUMENTS --body-file {temp_comment_file}
+glab issue note #$ARGUMENTS --message "$(cat {temp_comment_file})"
 ```
 
 ### 6. Update Local Task File
@@ -136,10 +136,10 @@ Update the task file frontmatter with sync information:
 ```yaml
 ---
 name: [Task Title]
-status: open
+status: opened
 created: [preserve existing date]
 updated: [Use REAL datetime from command above]
-github: https://github.com/{org}/{repo}/issues/$ARGUMENTS
+gitlab: https://gitlab.com/-/issues/$ARGUMENTS
 ---
 ```
 
@@ -153,7 +153,7 @@ name: [Task Title]
 status: closed
 created: [existing date]
 updated: [current date/time]
-github: https://github.com/{org}/{repo}/issues/$ARGUMENTS
+gitlab: https://gitlab.com/-/issues/$ARGUMENTS
 ---
 ```
 
@@ -175,7 +175,7 @@ status: in-progress
 created: [existing date]
 progress: [calculated percentage based on completed tasks]%
 prd: [existing path]
-github: [existing URL]
+gitlab: [existing URL]
 ---
 ```
 
@@ -210,7 +210,7 @@ This task is ready for review and can be closed.
 
 ### 9. Output Summary
 ```
-☁️ Synced updates to GitHub Issue #$ARGUMENTS
+☁️ Synced updates to GitLab Issue #$ARGUMENTS
 
 📝 Update summary:
    Progress items: {progress_count}
@@ -222,7 +222,7 @@ This task is ready for review and can be closed.
    Epic progress: {epic_progress}%
    Completed criteria: {completed}/{total}
 
-🔗 View update: gh issue view #$ARGUMENTS --comments
+🔗 View update: glab issue view #$ARGUMENTS --comments
 ```
 
 ### 10. Frontmatter Maintenance
@@ -243,7 +243,7 @@ This task is ready for review and can be closed.
 
 ### 12. Comment Size Management
 
-**Handle GitHub's Comment Limits:**
+**Handle GitLab's Comment Limits:**
 - Max comment size: 65,536 characters
 - If update exceeds limit:
   1. Split into multiple comments
@@ -260,7 +260,7 @@ This task is ready for review and can be closed.
    - Keep local updates intact for retry
 
 2. **Rate Limit:**
-   - Message: "❌ GitHub rate limit exceeded"
+   - Message: "❌ GitLab rate limit exceeded"
    - Solution: "Wait {minutes} minutes or use different token"
    - Save comment locally for later sync
 
@@ -284,7 +284,7 @@ When updating epic progress:
 ### 15. Post-Sync Validation
 
 After successful sync:
-- [ ] Verify comment posted on GitHub
+- [ ] Verify comment posted on GitLab
 - [ ] Confirm frontmatter updated with sync timestamp
 - [ ] Check epic progress updated if task completed
 - [ ] Validate no data corruption in local files

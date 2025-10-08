@@ -4,7 +4,7 @@
 
 Complete reference of all commands available in the Claude Code PM system.
 
-> **Note**: Project Management commands (`/pm:*`) are documented in the main [README.md](README.md#command-reference).
+> **Note**: Project Management commands (`/pm:*`) are documented in the main [README.md](README.md#command-reference). These commands integrate with GitLab for issue tracking, epics, and project management workflows.
 
 ## Table of Contents
 
@@ -79,17 +79,18 @@ General utility and maintenance commands.
 
 ## Review Commands
 
-Commands for handling external code review tools.
+Commands for handling external code review tools and GitLab integration.
 
 ### `/code-rabbit`
 - **Purpose**: Process CodeRabbit review comments intelligently
 - **Usage**: `/code-rabbit` then paste comments
-- **Description**: Evaluates CodeRabbit suggestions with context awareness, accepting valid improvements while ignoring context-unaware suggestions. Spawns parallel agents for multi-file reviews.
+- **Description**: Evaluates CodeRabbit suggestions with context awareness, accepting valid improvements while ignoring context-unaware suggestions. Spawns parallel agents for multi-file reviews. Works with GitLab merge request comments.
 - **Features**:
    - Understands CodeRabbit lacks full context
    - Accepts: Real bugs, security issues, resource leaks
    - Ignores: Style preferences, irrelevant patterns
    - Parallel processing for multiple files
+   - Compatible with GitLab MR workflows
 - **Output**: Summary of accepted/ignored suggestions with reasoning
 
 ## Command Patterns
@@ -155,5 +156,6 @@ This keeps the main conversation context clean while doing complex work.
 - Commands are markdown files interpreted as instructions
 - The `/` prefix triggers command execution
 - Commands can spawn agents for context preservation
-- All PM commands (`/pm:*`) are documented in the main README
+- All PM commands (`/pm:*`) are documented in the main README and integrate with GitLab via `glab` CLI
 - Commands follow rules defined in `/rules/`
+- GitLab operations use the `glab` command-line tool for issue and merge request management
