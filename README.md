@@ -387,22 +387,19 @@ Teams using this system report:
 
 1. **Install this repository into your project**:
 
-   #### Unix/Linux/macOS
+   Navigate to your project root and run:
 
+   #### Unix/Linux/macOS
    ```bash
-   cd path/to/your/project/
-   curl -sSL https://automaze.io/ccpm/install | bash
-   # or: wget -qO- https://automaze.io/ccpm/install | bash
+   git clone --depth 1 https://github.com/lorenzotomasdiez/ccpm-gitlab.git .claude && rm -rf .claude/.git
    ```
 
    #### Windows (PowerShell)
-   ```bash
-   cd path/to/your/project/
-   iwr -useb https://automaze.io/ccpm/install | iex
+   ```powershell
+   git clone --depth 1 https://github.com/lorenzotomasdiez/ccpm-gitlab.git .claude; Remove-Item -Recurse -Force .claude/.git
    ```
-   > ⚠️ **IMPORTANT**: If you already have a `.claude` directory, clone this repository to a different directory and copy the contents of the cloned `.claude` directory to your project's `.claude` directory.
 
-   See full/other installation options in the [installation guide ›](https://gitlab.com/automazeio/ccpm-gitlab/-/tree/main/install)
+   > ⚠️ **IMPORTANT**: If you already have a `.claude` directory, back it up first or clone to a temporary location and merge manually.
 
 
 2. **Initialize the PM system**:
