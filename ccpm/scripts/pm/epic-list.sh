@@ -40,7 +40,7 @@ for dir in .claude/epics/*/; do
   # Count tasks
   t=$(ls "$dir"/[0-9]*.md 2>/dev/null | wc -l)
 
-  # Format output with GitHub issue number if available
+  # Format output with GitLab issue number if available
   if [ -n "$g" ]; then
     i=$(echo "$g" | grep -o '/[0-9]*$' | tr -d '/')
     entry="   📋 ${dir}epic.md (#$i) - $p complete ($t tasks)"

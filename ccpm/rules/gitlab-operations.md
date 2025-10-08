@@ -114,7 +114,7 @@ glab issue update {task_iid} --link-issue {epic_iid} --link-type "relates_to"
 
 ### Close/Reopen Issue
 ```bash
-# Same as GitHub!
+# Simple commands
 glab issue close {iid}
 glab issue reopen {iid}
 ```

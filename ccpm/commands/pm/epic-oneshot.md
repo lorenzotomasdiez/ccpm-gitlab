@@ -4,7 +4,7 @@ allowed-tools: Read, LS
 
 # Epic Oneshot
 
-Decompose epic into tasks and sync to GitHub in one operation.
+Decompose epic into tasks and sync to GitLab in one operation.
 
 ## Usage
 ```
@@ -55,7 +55,7 @@ Running: /pm:epic-sync $ARGUMENTS
 ```
 
 This will:
-- Create epic issue on GitHub
+- Create epic issue on GitLab
 - Create sub-issues (using parallel agents if appropriate)
 - Rename task files to issue IDs
 - Create worktree

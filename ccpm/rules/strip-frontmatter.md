@@ -1,10 +1,10 @@
 # Strip Frontmatter
 
-Standard approach for removing YAML frontmatter before sending content to GitHub.
+Standard approach for removing YAML frontmatter before sending content to GitLab.
 
 ## The Problem
 
-YAML frontmatter contains internal metadata that should not appear in GitHub issues:
+YAML frontmatter contains internal metadata that should not appear in GitLab issues:
 - status, created, updated fields
 - Internal references and IDs
 - Local file paths
@@ -26,8 +26,8 @@ This removes:
 ## When to Strip Frontmatter
 
 Always strip frontmatter when:
-- Creating GitHub issues from markdown files
-- Posting file content as comments
+- Creating GitLab issues from markdown files
+- Posting file content as notes
 - Displaying content to external users
 - Syncing to any external system
 
@@ -36,21 +36,21 @@ Always strip frontmatter when:
 ### Creating an issue from a file
 ```bash
 # Bad - includes frontmatter
-gh issue create --body-file task.md
+glab issue create --description "$(cat task.md)"
 
 # Good - strips frontmatter and specifies repo
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-REPO=$(echo "$remote_url" | sed 's|.*github.com[:/]||' | sed 's|\.git$||')
+REPO=$(echo "$remote_url" | sed 's|.*gitlab.com[:/]||' | sed 's|\.git$||')
 [ -z "$REPO" ] && REPO="user/repo"
 sed '1,/^---$/d; 1,/^---$/d' task.md > /tmp/clean.md
-gh issue create --repo "$REPO" --body-file /tmp/clean.md
+glab issue create --repo "$REPO" --description "$(cat /tmp/clean.md)"
 ```
 
-### Posting a comment
+### Posting a note
 ```bash
 # Strip frontmatter before posting
-sed '1,/^---$/d; 1,/^---$/d' progress.md > /tmp/comment.md
-gh issue comment 123 --body-file /tmp/comment.md
+sed '1,/^---$/d; 1,/^---$/d' progress.md > /tmp/note.md
+glab issue note 123 --message "$(cat /tmp/note.md)"
 ```
 
 ### In a loop
