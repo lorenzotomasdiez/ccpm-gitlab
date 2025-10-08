@@ -35,11 +35,11 @@ completed: {current_datetime}
 
 If epic references a PRD, update its status to "complete".
 
-### 4. Close Epic on GitHub
+### 4. Close Epic on GitLab
 
-If epic has GitHub issue:
+If epic has GitLab issue:
 ```bash
-gh issue close {epic_issue_number} --comment "✅ Epic completed - all tasks done"
+glab issue close {epic_issue_iid} -m "✅ Epic completed - all tasks done"
 ```
 
 ### 5. Archive Option

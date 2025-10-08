@@ -112,10 +112,10 @@ fi
 
 echo "$feature_list"
 
-# Extract epic issue number
-epic_github_line=$(grep 'github:' .claude/epics/$ARGUMENTS/epic.md 2>/dev/null || true)
-if [ -n "$epic_github_line" ]; then
-  epic_issue=$(echo "$epic_github_line" | grep -oE '[0-9]+' || true)
+# Extract epic issue iid
+epic_gitlab_line=$(grep 'gitlab:' .claude/epics/$ARGUMENTS/epic.md 2>/dev/null || true)
+if [ -n "$epic_gitlab_line" ]; then
+  epic_issue=$(echo "$epic_gitlab_line" | grep -oE '[0-9]+' || true)
   if [ -n "$epic_issue" ]; then
     echo "\nCloses epic #$epic_issue"
   fi
@@ -173,34 +173,34 @@ mv .claude/epics/$ARGUMENTS .claude/epics/archived/
 echo "✅ Epic archived: .claude/epics/archived/$ARGUMENTS"
 ```
 
-### 7. Update GitHub Issues
+### 7. Update GitLab Issues
 
 Close related issues:
 ```bash
-# Get issue numbers from epic
-# Extract epic issue number
-epic_github_line=$(grep 'github:' .claude/epics/archived/$ARGUMENTS/epic.md 2>/dev/null || true)
-if [ -n "$epic_github_line" ]; then
-  epic_issue=$(echo "$epic_github_line" | grep -oE '[0-9]+$' || true)
+# Get issue iids from epic
+# Extract epic issue iid
+epic_gitlab_line=$(grep 'gitlab:' .claude/epics/archived/$ARGUMENTS/epic.md 2>/dev/null || true)
+if [ -n "$epic_gitlab_line" ]; then
+  epic_issue=$(echo "$epic_gitlab_line" | grep -oE '[0-9]+$' || true)
 else
   epic_issue=""
 fi
 
 # Close epic issue
-gh issue close $epic_issue -c "Epic completed and merged to main"
+glab issue close $epic_issue -m "Epic completed and merged to main"
 
 # Close task issues
 for task_file in .claude/epics/archived/$ARGUMENTS/[0-9]*.md; do
   [ -f "$task_file" ] || continue
-  # Extract task issue number
-  task_github_line=$(grep 'github:' "$task_file" 2>/dev/null || true)
-  if [ -n "$task_github_line" ]; then
-    issue_num=$(echo "$task_github_line" | grep -oE '[0-9]+$' || true)
+  # Extract task issue iid
+  task_gitlab_line=$(grep 'gitlab:' "$task_file" 2>/dev/null || true)
+  if [ -n "$task_gitlab_line" ]; then
+    issue_num=$(echo "$task_gitlab_line" | grep -oE '[0-9]+$' || true)
   else
     issue_num=""
   fi
   if [ ! -z "$issue_num" ]; then
-    gh issue close $issue_num -c "Completed in epic merge"
+    glab issue close $issue_num -m "Completed in epic merge"
   fi
 done
 ```
@@ -220,7 +220,7 @@ Cleanup completed:
   ✓ Worktree removed
   ✓ Branch deleted
   ✓ Epic archived
-  ✓ GitHub issues closed
+  ✓ GitLab issues closed
   
 Next steps:
   - Deploy changes if needed
@@ -258,4 +258,4 @@ Or abort and try later:
 - Run tests before merging when possible
 - Use --no-ff to preserve epic history
 - Archive epic data instead of deleting
-- Close GitHub issues to maintain sync
+- Close GitLab issues to maintain sync

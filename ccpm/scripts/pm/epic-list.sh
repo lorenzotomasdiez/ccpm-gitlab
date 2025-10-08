@@ -31,7 +31,7 @@ for dir in .claude/epics/*/; do
   n=$(grep "^name:" "$dir/epic.md" | head -1 | sed 's/^name: *//')
   s=$(grep "^status:" "$dir/epic.md" | head -1 | sed 's/^status: *//' | tr '[:upper:]' '[:lower:]')
   p=$(grep "^progress:" "$dir/epic.md" | head -1 | sed 's/^progress: *//')
-  g=$(grep "^github:" "$dir/epic.md" | head -1 | sed 's/^github: *//')
+  g=$(grep "^gitlab:" "$dir/epic.md" | head -1 | sed 's/^gitlab: *//')
 
   # Defaults
   [ -z "$n" ] && n=$(basename "$dir")

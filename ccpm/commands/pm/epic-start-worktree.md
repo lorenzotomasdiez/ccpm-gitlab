@@ -18,8 +18,8 @@ Launch parallel agents to work on epic tasks in a shared worktree.
    test -f .claude/epics/$ARGUMENTS/epic.md || echo "❌ Epic not found. Run: /pm:prd-parse $ARGUMENTS"
    ```
 
-2. **Check GitHub sync:**
-   Look for `github:` field in epic frontmatter.
+2. **Check GitLab sync:**
+   Look for `gitlab:` field in epic frontmatter.
    If missing: "❌ Epic not synced. Run: /pm:epic-sync $ARGUMENTS first"
 
 3. **Check for worktree:**
@@ -49,7 +49,7 @@ fi
 
 Read all task files in `.claude/epics/$ARGUMENTS/`:
 - Parse frontmatter for `status`, `depends_on`, `parallel` fields
-- Check GitHub issue status if needed
+- Check GitLab issue status if needed
 - Build dependency graph
 
 Categorize issues:

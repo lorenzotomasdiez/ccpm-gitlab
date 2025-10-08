@@ -1,23 +1,19 @@
-# Claude Code PM
+# Claude Code PM - GitLab Edition
 
-[![Automaze](https://img.shields.io/badge/By-automaze.io-4b3baf)](https://automaze.io)
+[![Original by Automaze](https://img.shields.io/badge/Original%20by-automaze.io-4b3baf)](https://github.com/automazeio/ccpm)
 &nbsp;
-[![Claude Code](https://img.shields.io/badge/+-Claude%20Code-d97757)](https://github.com/automazeio/ccpm/blob/main/README.md)
-[![GitHub Issues](https://img.shields.io/badge/+-GitHub%20Issues-1f2328)](https://github.com/automazeio/ccpm)
+[![GitLab Edition by](https://img.shields.io/badge/GitLab%20Edition%20by-Lorenzo%20Tomas%20Diez-fc6d26)](https://github.com/lorenzotomasdiez)
 &nbsp;
-[![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code?tab=readme-ov-file#general-)
+[![Claude Code](https://img.shields.io/badge/+-Claude%20Code-d97757)](https://github.com/lorenzotomasdiez/ccpm-gitlab)
 &nbsp;
-[![MIT License](https://img.shields.io/badge/License-MIT-28a745)](https://github.com/automazeio/ccpm/blob/main/LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-28a745)](https://github.com/lorenzotomasdiez/ccpm-gitlab/blob/main/LICENSE)
 &nbsp;
-[![Follow on 𝕏](https://img.shields.io/badge/𝕏-@aroussi-1c9bf0)](http://x.com/intent/follow?screen_name=aroussi)
-&nbsp;
-[![Star this repo](https://img.shields.io/github/stars/automazeio/ccpm.svg?style=social&label=Star%20this%20repo&maxAge=60)](https://github.com/automazeio/ccpm)
 
-### Claude Code workflow to ship ~~faster~~ _better_ using spec-driven development, GitHub issues, Git worktrees, and multiple AI agents running in parallel.
+### Claude Code workflow to ship ~~faster~~ _better_ using spec-driven development, GitLab issues, Git worktrees, and multiple AI agents running in parallel.
 
-**[中文文档 (Chinese Documentation)](zh-docs/README_ZH.md)**
+> **GitLab Edition**: Fork of the original [Claude Code PM](https://github.com/automazeio/ccpm) by [Ran Aroussi](https://x.com/aroussi), adapted for GitLab by [Lorenzo Tomas Diez](https://github.com/lorenzotomasdiez). This version replaces GitHub integration with native GitLab support, leveraging GitLab's superior issue relationships and unified DevOps platform.
 
-Stop losing context. Stop blocking on tasks. Stop shipping bugs. This battle-tested system turns PRDs into epics, epics into GitHub issues, and issues into production code – with full traceability at every step.
+Stop losing context. Stop blocking on tasks. Stop shipping bugs. This battle-tested system turns PRDs into epics, epics into GitLab issues, and issues into production code – with full traceability at every step.
 
 ![Claude Code PM](screenshot.webp)
 
@@ -26,7 +22,7 @@ Stop losing context. Stop blocking on tasks. Stop shipping bugs. This battle-tes
 - [Background](#background)
 - [The Workflow](#the-workflow)
 - [What Makes This Different?](#what-makes-this-different)
-- [Why GitHub Issues?](#why-github-issues)
+- [Why GitLab Issues?](#why-gitlab-issues)
 - [Core Principle: No Vibe Coding](#core-principle-no-vibe-coding)
 - [System Architecture](#system-architecture)
 - [Workflow Phases](#workflow-phases)
@@ -56,7 +52,7 @@ This system solves all of that.
 graph LR
     A[PRD Creation] --> B[Epic Planning]
     B --> C[Task Decomposition]
-    C --> D[GitHub Sync]
+    C --> D[GitLab Sync]
     D --> E[Parallel Execution]
 ```
 
@@ -69,7 +65,7 @@ graph LR
 # Transform PRD into a technical epic with task breakdown
 /pm:prd-parse memory-system
 
-# Push to GitHub and start parallel execution
+# Push to GitLab and start parallel execution
 /pm:epic-oneshot memory-system
 /pm:issue-start 1235
 ```
@@ -81,14 +77,14 @@ graph LR
 | Context lost between sessions | **Persistent context** across all work |
 | Serial task execution | **Parallel agents** on independent tasks |
 | "Vibe coding" from memory | **Spec-driven** with full traceability |
-| Progress hidden in branches | **Transparent audit trail** in GitHub |
+| Progress hidden in branches | **Transparent audit trail** in GitLab |
 | Manual task coordination | **Intelligent prioritization** with `/pm:next` |
 
-## Why GitHub Issues?
+## Why GitLab Issues?
 
 Most Claude Code workflows operate in isolation – a single developer working with AI in their local environment. This creates a fundamental problem: **AI-assisted development becomes a silo**.
 
-By using GitHub Issues as our database, we unlock something powerful:
+By using GitLab Issues as our database, we unlock something powerful:
 
 ### 🤝 **True Team Collaboration**
 - Multiple Claude instances can work on the same project simultaneously
@@ -99,20 +95,26 @@ By using GitHub Issues as our database, we unlock something powerful:
 ### 🔄 **Seamless Human-AI Handoffs**
 - AI can start a task, human can finish it (or vice versa)
 - Progress updates are visible to everyone, not trapped in chat logs
-- Code reviews happen naturally through PR comments
+- Code reviews happen naturally through merge request comments
 - No "what did the AI do?" meetings
 
 ### 📈 **Scalable Beyond Solo Work**
 - Add team members without onboarding friction
 - Multiple AI agents working in parallel on different issues
 - Distributed teams stay synchronized automatically
-- Works with existing GitHub workflows and tools
+- Works with existing GitLab workflows and tools
 
 ### 🎯 **Single Source of Truth**
 - No separate databases or project management tools
 - Issue state is the project state
 - Comments are the audit trail
 - Labels provide organization
+
+### 🏢 **GitLab Advantages**
+- Native issue relationships and hierarchies (no extensions needed)
+- Built-in DevOps integration (CI/CD, security scanning, etc.)
+- Self-hosted options for enterprise control
+- Unified platform for source, CI/CD, and project management
 
 This isn't just a project management system – it's a **collaboration protocol** that lets humans and AI agents work together at scale, using infrastructure your team already trusts.
 
@@ -180,14 +182,14 @@ Breaks epic into concrete, actionable tasks with acceptance criteria, effort est
 
 **Output:** `.claude/epics/feature-name/[task].md`
 
-### 4. GitHub Synchronization
+### 4. GitLab Synchronization
 
 ```bash
 /pm:epic-sync feature-name
 # Or for confident workflows:
 /pm:epic-oneshot feature-name
 ```
-Pushes epic and tasks to GitHub as issues with appropriate labels and relationships.
+Pushes epic and tasks to GitLab as issues with appropriate labels and relationships.
 
 ### 5. Execution Phase
 
@@ -204,7 +206,7 @@ Specialized agents implement tasks while maintaining progress updates and an aud
 > Type `/pm:help` for a concise command summary
 
 ### Initial Setup
-- `/pm:init` - Install dependencies and configure GitHub
+- `/pm:init` - Install dependencies and configure GitLab
 
 ### PRD Commands
 - `/pm:prd-new` - Launch brainstorming for new product requirement
@@ -215,7 +217,7 @@ Specialized agents implement tasks while maintaining progress updates and an aud
 
 ### Epic Commands
 - `/pm:epic-decompose` - Break epic into task files
-- `/pm:epic-sync` - Push epic and tasks to GitHub
+- `/pm:epic-sync` - Push epic and tasks to GitLab
 - `/pm:epic-oneshot` - Decompose and sync in one command
 - `/pm:epic-list` - List all epics
 - `/pm:epic-show` - Display epic and its tasks
@@ -227,7 +229,7 @@ Specialized agents implement tasks while maintaining progress updates and an aud
 - `/pm:issue-show` - Display issue and sub-issues
 - `/pm:issue-status` - Check issue status
 - `/pm:issue-start` - Begin work with specialized agent
-- `/pm:issue-sync` - Push updates to GitHub
+- `/pm:issue-sync` - Push updates to GitLab
 - `/pm:issue-close` - Mark issue as complete
 - `/pm:issue-reopen` - Reopen closed issue
 - `/pm:issue-edit` - Edit issue details
@@ -240,8 +242,8 @@ Specialized agents implement tasks while maintaining progress updates and an aud
 - `/pm:in-progress` - List work in progress
 
 ### Sync Commands
-- `/pm:sync` - Full bidirectional sync with GitHub
-- `/pm:import` - Import existing GitHub issues
+- `/pm:sync` - Full bidirectional sync with GitLab
+- `/pm:import` - Import existing GitLab issues
 
 ### Maintenance Commands
 - `/pm:validate` - Check system integrity
@@ -294,9 +296,9 @@ We're not assigning agents to issues. We're **leveraging multiple agents** to sh
 
 Your main conversation becomes the conductor, not the orchestra.
 
-### GitHub vs Local: Perfect Separation
+### GitLab vs Local: Perfect Separation
 
-**What GitHub Sees:**
+**What GitLab Sees:**
 - Clean, simple issues
 - Progress updates
 - Completion status
@@ -306,7 +308,7 @@ Your main conversation becomes the conductor, not the orchestra.
 - Agents coordinate through Git commits
 - Complex orchestration hidden from view
 
-GitHub doesn't need to know HOW the work got done – just that it IS done.
+GitLab doesn't need to know HOW the work got done – just that it IS done.
 
 ### The Command Flow
 
@@ -333,8 +335,8 @@ Never lose project state again. Each epic maintains its own context, agents read
 ### ⚡ **Parallel Execution**
 Ship faster with multiple agents working simultaneously. Tasks marked `parallel: true` enable conflict-free concurrent development.
 
-### 🔗 **GitHub Native**
-Works with tools your team already uses. Issues are the source of truth, comments provide history, and there is no dependency on the Projects API.
+### 🔗 **GitLab Native**
+Works with tools your team already uses. Issues are the source of truth, comments provide history, and native issue relationships eliminate the need for extensions.
 
 ### 🤖 **Agent Specialization**
 Right tool for every job. Different agents for UI, API, and database work. Each reads requirements and posts updates automatically.
@@ -366,7 +368,7 @@ Teams using this system report:
 
 # Review the epic...
 
-# Break into tasks and push to GitHub
+# Break into tasks and push to GitLab
 /pm:epic-oneshot memory-system
 # Creates issues: #1234 (epic), #1235, #1236 (tasks)
 
@@ -374,7 +376,7 @@ Teams using this system report:
 /pm:issue-start 1235
 # Agent begins work, maintains local progress
 
-# Sync progress to GitHub
+# Sync progress to GitLab
 /pm:issue-sync 1235
 # Updates posted as issue comments
 
@@ -403,7 +405,7 @@ Teams using this system report:
    ```
    > ⚠️ **IMPORTANT**: If you already have a `.claude` directory, clone this repository to a different directory and copy the contents of the cloned `.claude` directory to your project's `.claude` directory.
 
-   See full/other installation options in the [installation guide ›](https://github.com/automazeio/ccpm/tree/main/install)
+   See full/other installation options in the [installation guide ›](https://gitlab.com/automazeio/ccpm-gitlab/-/tree/main/install)
 
 
 2. **Initialize the PM system**:
@@ -411,9 +413,8 @@ Teams using this system report:
    /pm:init
    ```
    This command will:
-   - Install GitHub CLI (if needed)
-   - Authenticate with GitHub
-   - Install [gh-sub-issue extension](https://github.com/yahsan2/gh-sub-issue) for proper parent-child relationships
+   - Install GitLab CLI (glab) (if needed)
+   - Authenticate with GitLab
    - Create required directories
    - Update .gitignore
 
@@ -440,7 +441,7 @@ Watch as structured planning transforms into shipped code.
 
 ## Local vs Remote
 
-| Operation | Local | GitHub |
+| Operation | Local | GitLab |
 |-----------|-------|--------|
 | PRD Creation | ✅ | — |
 | Implementation Planning | ✅ | — |
@@ -451,44 +452,48 @@ Watch as structured planning transforms into shipped code.
 
 ## Technical Notes
 
-### GitHub Integration
-- Uses **gh-sub-issue extension** for proper parent-child relationships
-- Falls back to task lists if extension not installed
+### GitLab Integration
+- Uses **GitLab native issue relationships** for proper parent-child hierarchies
 - Epic issues track sub-task completion automatically
 - Labels provide additional organization (`epic:feature`, `task:feature`)
+- No extensions required - everything is built into GitLab
 
 ### File Naming Convention
 - Tasks start as `001.md`, `002.md` during decomposition
-- After GitHub sync, renamed to `{issue-id}.md` (e.g., `1234.md`)
+- After GitLab sync, renamed to `{issue-id}.md` (e.g., `1234.md`)
 - Makes it easy to navigate: issue #1234 = file `1234.md`
 
 ### Design Decisions
-- Intentionally avoids GitHub Projects API complexity
+- Intentionally avoids GitLab Projects API complexity
 - All commands operate on local files first for speed
-- Synchronization with GitHub is explicit and controlled
+- Synchronization with GitLab is explicit and controlled
 - Worktrees provide clean git isolation for parallel work
-- GitHub Projects can be added separately for visualization
+- GitLab Boards can be added separately for visualization
 
 ---
 
-## Support This Project
+## Credits & Support
 
-Claude Code PM was developed at [Automaze](https://automaze.io) **for developers who ship, by developers who ship**.
+### Original Project
+**Claude Code PM** was developed by [Ran Aroussi](https://x.com/aroussi) at [Automaze](https://automaze.io).
+- ⭐ [Star the original GitHub version](https://github.com/automazeio/ccpm)
+- 🐦 [Follow Ran on X](https://x.com/aroussi)
 
-If Claude Code PM helps your team ship better software:
+### GitLab Edition
+This **GitLab Edition** was created by [Lorenzo Tomas Diez](https://github.com/lorenzotomasdiez).
+- ⭐ [Star this GitLab Edition](https://github.com/lorenzotomasdiez/ccpm-gitlab)
+- 🔧 Native GitLab integration with superior issue relationships
+- 🚀 Leverages GitLab's unified DevOps platform
 
-- ⭐ **[Star this repository](https://github.com/automazeio/ccpm)** to show your support
-- 🐦 **[Follow @aroussi on X](https://x.com/aroussi)** for updates and tips
-
+If this GitLab edition helps your team:
+- Open issues and contribute improvements
+- Share your experience with the community
+- Consider supporting both the original and this fork
 
 ---
 
-> [!TIP]
-> **Ship faster with Automaze.** We partner with founders to bring their vision to life, scale their business, and optimize for success.
-> **[Visit Automaze to book a call with me ›](https://automaze.io)**
+## License
 
----
+MIT License - See [LICENSE](LICENSE) file for details.
 
-## Star History
-
-![Star History Chart](https://api.star-history.com/svg?repos=automazeio/ccpm)
+Free to use, modify, and distribute. Contributions welcome!

@@ -15,7 +15,7 @@ Analyze an issue to identify parallel work streams for maximum efficiency.
 
 1. **Find local task file:**
    - First check if `.claude/epics/*/$ARGUMENTS.md` exists (new naming convention)
-   - If not found, search for file containing `github:.*issues/$ARGUMENTS` in frontmatter (old naming)
+   - If not found, search for file containing `gitlab:.*issues/$ARGUMENTS` in frontmatter (old naming)
    - If not found: "❌ No local task for issue #$ARGUMENTS. Run: /pm:import first"
 
 2. **Check for existing analysis:**
@@ -27,9 +27,9 @@ Analyze an issue to identify parallel work streams for maximum efficiency.
 
 ### 1. Read Issue Context
 
-Get issue details from GitHub:
+Get issue details from GitLab:
 ```bash
-gh issue view $ARGUMENTS --json title,body,labels
+glab issue view $ARGUMENTS --output json
 ```
 
 Read local task file to understand:

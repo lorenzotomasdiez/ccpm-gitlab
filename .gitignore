@@ -1,3 +1,5 @@
 .DS_Store
 .idea/
 CLAUDE.md
+*.OLD
+*.bak

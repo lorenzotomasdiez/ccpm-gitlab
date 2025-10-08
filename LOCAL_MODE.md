@@ -1,6 +1,6 @@
 # CCPM Local Mode
 
-CCPM works perfectly in local-only mode without any GitHub integration. All management is done through local markdown files.
+CCPM works perfectly in local-only mode without any GitLab integration. All management is done through local markdown files.
 
 ## Local-Only Workflow
 
@@ -69,15 +69,15 @@ vim .claude/epics/user-authentication/001.md
 - `/pm:search <term>` - Search content
 - `/pm:validate` - Check file integrity
 
-### 🚫 GitHub-Only Commands (Skip These)
-- `/pm:epic-sync <name>` - Push to GitHub Issues
-- `/pm:issue-sync <id>` - Update GitHub Issue
-- `/pm:issue-start <id>` - Requires GitHub Issue ID
-- `/pm:epic-oneshot <name>` - Includes GitHub sync
+### 🚫 GitLab-Only Commands (Skip These)
+- `/pm:epic-sync <name>` - Push to GitLab Issues
+- `/pm:issue-sync <id>` - Update GitLab Issue
+- `/pm:issue-start <id>` - Requires GitLab Issue ID
+- `/pm:epic-oneshot <name>` - Includes GitLab sync
 
 ## Benefits of Local Mode
 
-- **✅ No external dependencies** - Works without GitHub account/internet
+- **✅ No external dependencies** - Works without GitLab account/internet
 - **✅ Full privacy** - All data stays local
 - **✅ Version control friendly** - All files are markdown
 - **✅ Team collaboration** - Share `.claude/` directory via git

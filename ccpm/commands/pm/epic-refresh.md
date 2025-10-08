@@ -29,29 +29,29 @@ progress = (closed_tasks / total_tasks) * 100
 
 Round to nearest integer.
 
-### 3. Update GitHub Task List
+### 3. Update GitLab Task List
 
-If epic has GitHub issue, sync task checkboxes:
+If epic has GitLab issue, sync task checkboxes:
 
 ```bash
-# Get epic issue number from epic.md frontmatter
-epic_issue={extract_from_github_field}
+# Get epic issue iid from epic.md frontmatter
+epic_issue={extract_from_gitlab_field}
 
 if [ ! -z "$epic_issue" ]; then
   # Get current epic body
-  gh issue view $epic_issue --json body -q .body > /tmp/epic-body.md
-  
+  glab issue view $epic_issue --output json | jq -r '.description' > /tmp/epic-body.md
+
   # For each task, check its status and update checkbox
   for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do
-    # Extract task issue number
-    task_github_line=$(grep 'github:' "$task_file" 2>/dev/null || true)
-    if [ -n "$task_github_line" ]; then
-      task_issue=$(echo "$task_github_line" | grep -oE '[0-9]+$' || true)
+    # Extract task issue iid
+    task_gitlab_line=$(grep 'gitlab:' "$task_file" 2>/dev/null || true)
+    if [ -n "$task_gitlab_line" ]; then
+      task_issue=$(echo "$task_gitlab_line" | grep -oE '[0-9]+$' || true)
     else
       task_issue=""
     fi
     task_status=$(grep 'status:' $task_file | cut -d: -f2 | tr -d ' ')
-    
+
     if [ "$task_status" = "closed" ]; then
       # Mark as checked
       sed -i "s/- \[ \] #$task_issue/- [x] #$task_issue/" /tmp/epic-body.md
@@ -60,9 +60,9 @@ if [ ! -z "$epic_issue" ]; then
       sed -i "s/- \[x\] #$task_issue/- [ ] #$task_issue/" /tmp/epic-body.md
     fi
   done
-  
+
   # Update epic issue
-  gh issue edit $epic_issue --body-file /tmp/epic-body.md
+  glab issue update $epic_issue --description "$(cat /tmp/epic-body.md)"
 fi
 ```
 
@@ -95,7 +95,7 @@ Tasks:
   
 Progress: {old_progress}% → {new_progress}%
 Status: {old_status} → {new_status}
-GitHub: Task list updated ✓
+GitLab: Task list updated ✓
 
 {If complete}: Run /pm:epic-close $ARGUMENTS to close epic
 {If in progress}: Run /pm:next to see priority tasks
@@ -103,6 +103,6 @@ GitHub: Task list updated ✓
 
 ## Important Notes
 
-This is useful after manual task edits or GitHub sync.
+This is useful after manual task edits or GitLab sync.
 Don't modify task files, only epic status.
 Preserve all other frontmatter fields.
