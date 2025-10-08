@@ -1,13 +1,10 @@
 # Claude Code PM - GitLab Edition
 
 [![Original by Automaze](https://img.shields.io/badge/Original%20by-automaze.io-4b3baf)](https://github.com/automazeio/ccpm)
-&nbsp;
-[![GitLab Edition by](https://img.shields.io/badge/GitLab%20Edition%20by-Lorenzo%20Tomas%20Diez-fc6d26)](https://github.com/lorenzotomasdiez)
-&nbsp;
-[![Claude Code](https://img.shields.io/badge/+-Claude%20Code-d97757)](https://github.com/lorenzotomasdiez/ccpm-gitlab)
-&nbsp;
+[![GitLab Fork](https://img.shields.io/badge/GitLab%20Fork-Lorenzo%20Tomas%20Diez-fc6d26)](https://github.com/lorenzotomasdiez/ccpm-gitlab)
+[![GitHub stars](https://img.shields.io/github/stars/lorenzotomasdiez/ccpm-gitlab?style=social)](https://github.com/lorenzotomasdiez/ccpm-gitlab)
+[![Follow @tototen](https://img.shields.io/badge/𝕏-@tototen-1c9bf0)](https://x.com/tototen)
 [![MIT License](https://img.shields.io/badge/License-MIT-28a745)](https://github.com/lorenzotomasdiez/ccpm-gitlab/blob/main/LICENSE)
-&nbsp;
 
 ### Claude Code workflow to ship ~~faster~~ _better_ using spec-driven development, GitLab issues, Git worktrees, and multiple AI agents running in parallel.
 
