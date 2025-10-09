@@ -53,16 +53,39 @@ if [[ "$remote_url" == *"automazeio/ccpm"* ]] || [[ "$remote_url" == *"automazei
 fi
 ```
 
-### 1. Create Epic Issue
+### 1. Detect GitLab Host and Repository
 
-#### First, detect the GitLab repository:
+Extract both the GitLab host and repository path from git remote:
+
 ```bash
-# Get the current repository from git remote
+# Get remote URL
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-REPO=$(echo "$remote_url" | sed 's|.*gitlab.com[:/]||' | sed 's|\.git$||')
-[ -z "$REPO" ] && REPO="user/repo"
-echo "Creating issues in repository: $REPO"
+
+# Extract GitLab host (supports gitlab.com and self-hosted)
+if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+  # HTTPS: https://gitlab.company.com/owner/repo.git
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
+elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
+  # SSH: git@gitlab.company.com:owner/repo.git
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+else
+  echo "❌ Could not parse git remote URL: $remote_url"
+  exit 1
+fi
+
+echo "Detected GitLab host: $GITLAB_HOST"
+echo "Repository path: $REPO"
 ```
+
+This pattern works for:
+- `https://gitlab.com/owner/repo.git`
+- `git@gitlab.com:owner/repo.git`
+- `https://gitlab.company.com/group/subgroup/repo.git`
+- `git@gitlab.company.com:group/subgroup/repo.git`
+
+### 2. Create Epic Issue
 
 Strip frontmatter and prepare GitLab issue body:
 ```bash
@@ -118,107 +141,104 @@ else
 fi
 
 # Create epic issue with labels
-epic_iid=$(glab issue create \
-  --repo "$REPO" \
-  --title "Epic: $ARGUMENTS" \
-  --description "$(cat /tmp/epic-body.md)" \
-  --label "epic,epic:$ARGUMENTS,$epic_type" \
-  --output json | jq -r '.iid')
-```
+# NOTE: glab issue create does NOT support --output json
+# We must parse the text output to extract the IID
+glab issue create \
+  -R "$REPO" \
+  -t "Epic: $ARGUMENTS" \
+  -d "$(cat /tmp/epic-body.md)" \
+  -l "epic,epic:$ARGUMENTS,$epic_type" \
+  --no-editor > /tmp/epic-result.txt 2>&1
 
-Store the returned issue iid for epic frontmatter update.
+# Parse output to extract issue IID
+# Output format: https://{host}/{owner}/{repo}/-/issues/{iid}
+epic_iid=$(grep -o 'issues/[0-9]*' /tmp/epic-result.txt | head -1 | cut -d'/' -f2)
 
-### 2. Create Task Sub-Issues
-
-Count task files to determine strategy:
-```bash
-task_count=$(ls .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md 2>/dev/null | wc -l)
-```
-
-### For Small Batches (< 5 tasks): Sequential Creation
-
-```bash
-if [ "$task_count" -lt 5 ]; then
-  # Create sequentially for small batches
-  for task_file in .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md; do
-    [ -f "$task_file" ] || continue
-
-    # Extract task name from frontmatter
-    task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
-
-    # Strip frontmatter from task content
-    sed '1,/^---$/d; 1,/^---$/d' "$task_file" > /tmp/task-body.md
-
-    # Create sub-issue with labels and link to epic
-    task_iid=$(glab issue create \
-      --repo "$REPO" \
-      --title "$task_name" \
-      --description "$(cat /tmp/task-body.md)" \
-      --label "task,epic:$ARGUMENTS" \
-      --linked-issues "$epic_iid" \
-      --link-type "relates_to" \
-      --output json | jq -r '.iid')
-
-    # Record mapping for renaming
-    echo "$task_file:$task_iid" >> /tmp/task-mapping.txt
-  done
-
-  # After creating all issues, update references and rename files
-  # This follows the same process as step 3 below
+if [ -z "$epic_iid" ]; then
+  echo "❌ Failed to create epic issue"
+  cat /tmp/epic-result.txt
+  exit 1
 fi
+
+echo "✅ Created epic issue #${epic_iid}"
 ```
 
-### For Larger Batches: Parallel Creation
+**Key Changes:**
+- Removed `--output json` (not supported)
+- Parse text output with grep/cut to extract IID
+- Use `-R` instead of `--repo` (shorter)
+- Use `-t`, `-d`, `-l` instead of long flags
+
+### 3. Create Task Sub-Issues
+
+Count task files:
+```bash
+task_count=$(ls .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md 2>/dev/null | wc -l | tr -d ' ')
+echo "Creating $task_count task issues..."
+```
+
+Create all tasks sequentially (parallel creation causes timeouts):
 
 ```bash
-if [ "$task_count" -ge 5 ]; then
-  echo "Creating $task_count sub-issues in parallel..."
+# Initialize task mapping file
+> /tmp/task-mapping.txt
 
-  # Batch tasks for parallel processing
-  # Spawn agents to create sub-issues in parallel with proper labels
-  # Each agent must use: --label "task,epic:$ARGUMENTS"
+# Create each task issue
+task_num=0
+for task_file in .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md; do
+  [ -f "$task_file" ] || continue
+
+  task_num=$((task_num + 1))
+  echo "Creating task $task_num/$task_count..."
+
+  # Extract task name from frontmatter
+  task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
+
+  # Strip frontmatter from task content
+  sed '1,/^---$/d; 1,/^---$/d' "$task_file" > /tmp/task-body.md
+
+  # Create sub-issue with labels and link to epic
+  glab issue create \
+    -R "$REPO" \
+    -t "$task_name" \
+    -d "$(cat /tmp/task-body.md)" \
+    -l "task,epic:$ARGUMENTS" \
+    --linked-issues "$epic_iid" \
+    --link-type "relates_to" \
+    --no-editor > /tmp/task-result.txt 2>&1
+
+  # Parse output to extract task IID
+  task_iid=$(grep -o 'issues/[0-9]*' /tmp/task-result.txt | head -1 | cut -d'/' -f2)
+
+  if [ -z "$task_iid" ]; then
+    echo "⚠️ Failed to create task: $task_name"
+    cat /tmp/task-result.txt
+    continue
+  fi
+
+  echo "  ✅ Created task #${task_iid}"
+
+  # Record mapping for renaming
+  echo "$task_file:$task_iid" >> /tmp/task-mapping.txt
+done
+
+# Verify we created some tasks
+if [ ! -s /tmp/task-mapping.txt ]; then
+  echo "❌ No tasks were created successfully"
+  exit 1
 fi
+
+echo "✅ Created all task issues"
 ```
 
-Use Task tool for parallel creation:
-```yaml
-Task:
-  description: "Create GitLab sub-issues batch {X}"
-  subagent_type: "general-purpose"
-  prompt: |
-    Create GitLab sub-issues for tasks in epic $ARGUMENTS
-    Parent epic issue: #$epic_iid
+**Key Changes:**
+- Removed parallel creation (causes timeouts with large descriptions)
+- Sequential is reliable and shows progress
+- Skip parallel agent complexity
+- Better error handling per task
+- Progress feedback for user
 
-    Tasks to process:
-    - {list of 3-4 task files}
-
-    For each task file:
-    1. Extract task name from frontmatter
-    2. Strip frontmatter using: sed '1,/^---$/d; 1,/^---$/d'
-    3. Create sub-issue using:
-       glab issue create --repo "$REPO" --title "$task_name" \
-         --description "$(cat /tmp/task-body.md)" --label "task,epic:$ARGUMENTS" \
-         --linked-issues "$epic_iid" --link-type "relates_to" \
-         --output json | jq -r '.iid'
-    4. Record: task_file:issue_iid
-
-    IMPORTANT: Always include --label parameter with "task,epic:$ARGUMENTS"
-
-    Return mapping of files to issue iids.
-```
-
-Consolidate results from parallel agents:
-```bash
-# Collect all mappings from agents
-cat /tmp/batch-*/mapping.txt >> /tmp/task-mapping.txt
-
-# IMPORTANT: After consolidation, follow step 3 to:
-# 1. Build old->new ID mapping
-# 2. Update all task references (depends_on, conflicts_with)
-# 3. Rename files with proper frontmatter updates
-```
-
-### 3. Rename Task Files and Update References
+### 4. Rename Task Files and Update References
 
 First, build a mapping of old numbers to new issue iids:
 ```bash
@@ -253,38 +273,42 @@ while IFS=: read -r task_file task_iid; do
   [ "$task_file" != "$new_name" ] && rm "$task_file"
 
   # Update gitlab field in frontmatter
-  # Add the GitLab URL to the frontmatter
-  repo=$(glab repo view --output json | jq -r '.path_with_namespace')
-  gitlab_url="https://gitlab.com/$repo/-/issues/$task_iid"
+  # Build GitLab URL with detected host
+  gitlab_url="https://$GITLAB_HOST/$REPO/-/issues/$task_iid"
 
   # Update frontmatter with GitLab URL and current timestamp
   current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-  # Use sed to update the gitlab and updated fields
-  sed -i.bak "/^gitlab:/c\gitlab: $gitlab_url" "$new_name"
-  sed -i.bak "/^updated:/c\updated: $current_date" "$new_name"
-  rm "${new_name}.bak"
+  # Use sed with backup for macOS compatibility
+  sed -i.bak "s|^gitlab:.*|gitlab: $gitlab_url|" "$new_name"
+  sed -i.bak "s|^updated:.*|updated: $current_date|" "$new_name"
+  rm -f "${new_name}.bak"
 done < /tmp/task-mapping.txt
 ```
 
-### 4. Update Epic File
+**Key Changes:**
+- Use `sed -i.bak` for macOS compatibility
+- Explicitly remove `.bak` files with `rm -f`
+- Build URLs with `$GITLAB_HOST` variable
+- Use `s|pattern|replacement|` for URL safety (no escaping slashes)
+
+### 5. Update Epic File
 
 Update the epic file with GitLab URL, timestamp, and real task iids:
 
-#### 4a. Update Frontmatter
+#### 5a. Update Frontmatter
 ```bash
-# Get repo info
-repo=$(glab repo view --output json | jq -r '.path_with_namespace')
-epic_url="https://gitlab.com/$repo/-/issues/$epic_iid"
+# Build epic URL with detected host
+epic_url="https://$GITLAB_HOST/$REPO/-/issues/$epic_iid"
 current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-# Update epic frontmatter
-sed -i.bak "/^gitlab:/c\gitlab: $epic_url" .claude/epics/$ARGUMENTS/epic.md
-sed -i.bak "/^updated:/c\updated: $current_date" .claude/epics/$ARGUMENTS/epic.md
-rm .claude/epics/$ARGUMENTS/epic.md.bak
+# Update epic frontmatter with backup for macOS
+sed -i.bak "s|^gitlab:.*|gitlab: $epic_url|" .claude/epics/$ARGUMENTS/epic.md
+sed -i.bak "s|^updated:.*|updated: $current_date|" .claude/epics/$ARGUMENTS/epic.md
+rm -f .claude/epics/$ARGUMENTS/epic.md.bak
 ```
 
-#### 4b. Update Tasks Created Section
+#### 5b. Update Tasks Created Section
 ```bash
 # Create a temporary file with the updated Tasks Created section
 cat > /tmp/tasks-section.md << 'EOF'
@@ -309,8 +333,8 @@ for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do
 done
 
 # Add summary statistics
-total_count=$(ls .claude/epics/$ARGUMENTS/[0-9]*.md 2>/dev/null | wc -l)
-parallel_count=$(grep -l '^parallel: true' .claude/epics/$ARGUMENTS/[0-9]*.md 2>/dev/null | wc -l)
+total_count=$(ls .claude/epics/$ARGUMENTS/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ')
+parallel_count=$(grep -l '^parallel: true' .claude/epics/$ARGUMENTS/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ')
 sequential_count=$((total_count - parallel_count))
 
 cat >> /tmp/tasks-section.md << EOF
@@ -340,7 +364,7 @@ rm .claude/epics/$ARGUMENTS/epic.md.backup
 rm /tmp/tasks-section.md
 ```
 
-### 5. Create Mapping File
+### 6. Create Mapping File
 
 Create `.claude/epics/$ARGUMENTS/gitlab-mapping.md`:
 ```bash
@@ -348,7 +372,7 @@ Create `.claude/epics/$ARGUMENTS/gitlab-mapping.md`:
 cat > .claude/epics/$ARGUMENTS/gitlab-mapping.md << EOF
 # GitLab Issue Mapping
 
-Epic: #${epic_iid} - https://gitlab.com/${repo}/-/issues/${epic_iid}
+Epic: #${epic_iid} - https://${GITLAB_HOST}/${REPO}/-/issues/${epic_iid}
 
 Tasks:
 EOF
@@ -360,7 +384,7 @@ for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do
   issue_iid=$(basename "$task_file" .md)
   task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
 
-  echo "- #${issue_iid}: ${task_name} - https://gitlab.com/${repo}/-/issues/${issue_iid}" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md
+  echo "- #${issue_iid}: ${task_name} - https://${GITLAB_HOST}/${REPO}/-/issues/${issue_iid}" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md
 done
 
 # Add sync timestamp
@@ -368,50 +392,97 @@ echo "" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md
 echo "Synced: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md
 ```
 
-### 6. Create Worktree
+**Key Changes:**
+- Use `$GITLAB_HOST` and `$REPO` variables throughout
+- Works with any GitLab instance (gitlab.com or self-hosted)
+
+### 7. Create Worktree
 
 Follow `/rules/worktree-operations.md` to create development worktree:
 
 ```bash
-# Ensure main is current
-git checkout main
-git pull origin main
+# Get current branch name
+current_branch=$(git branch --show-current)
+
+# Ensure we're on main/master
+if [ "$current_branch" != "main" ] && [ "$current_branch" != "master" ]; then
+  echo "⚠️ Not on main branch (currently on: $current_branch)"
+  echo "Switching to main..."
+  git checkout main 2>/dev/null || git checkout master 2>/dev/null || {
+    echo "❌ Could not switch to main/master branch"
+    exit 1
+  }
+fi
+
+# Pull latest
+git pull origin $(git branch --show-current)
 
 # Create worktree for epic
-git worktree add ../epic-$ARGUMENTS -b epic/$ARGUMENTS
+worktree_path="../epic-$ARGUMENTS"
+git worktree add "$worktree_path" -b "epic/$ARGUMENTS"
 
-echo "✅ Created worktree: ../epic-$ARGUMENTS"
+echo "✅ Created worktree: $worktree_path"
 ```
 
-### 7. Output
+### 8. Output
 
 ```
 ✅ Synced to GitLab
-  - Epic: #{epic_iid} - {epic_title}
-  - Tasks: {count} sub-issues created
-  - Labels applied: epic, task, epic:{name}
-  - Files renamed: 001.md → {issue_iid}.md
-  - References updated: depends_on/conflicts_with now use issue iids
-  - Worktree: ../epic-$ARGUMENTS
+
+Epic: #${epic_iid} - Epic: ${ARGUMENTS}
+  URL: https://${GITLAB_HOST}/${REPO}/-/issues/${epic_iid}
+
+Tasks: ${task_count} sub-issues created
+  Labels: task, epic:${ARGUMENTS}
+  Linked to epic: #${epic_iid}
+
+Files:
+  ✅ Renamed: 001.md → ${task_iid}.md
+  ✅ Updated: depends_on/conflicts_with arrays with real issue IIDs
+  ✅ Updated: Epic and task frontmatter with GitLab URLs
+
+Worktree: ../epic-${ARGUMENTS}
 
 Next steps:
-  - Start parallel execution: /pm:epic-start $ARGUMENTS
+  - Start parallel execution: /pm:epic-start ${ARGUMENTS}
   - Or work on single issue: /pm:issue-start {issue_iid}
-  - View epic: https://gitlab.com/{owner}/{repo}/-/issues/{epic_iid}
+  - View epic: https://${GITLAB_HOST}/${REPO}/-/issues/${epic_iid}
 ```
 
 ## Error Handling
 
 Follow `/rules/gitlab-operations.md` for GitLab CLI errors.
 
-If any issue creation fails:
-- Report what succeeded
-- Note what failed
-- Don't attempt rollback (partial sync is fine)
+**Common Errors:**
+
+1. **Issue creation fails:**
+   - Check authentication: `glab auth status`
+   - Verify repository access
+   - Check description size (max 1MB)
+   - Report what succeeded, don't rollback
+
+2. **Timeout errors:**
+   - Task descriptions may be too large
+   - Network issues
+   - Keep partial progress, continue from where it stopped
+
+3. **Rate limiting:**
+   - GitLab may throttle rapid issue creation
+   - Wait 60 seconds and retry failed tasks
+   - Consider creating fewer tasks at once
+
+4. **Self-hosted GitLab:**
+   - Ensure `glab auth login` was run for custom host
+   - Verify host is reachable
+   - Check GitLab version (requires v13+)
 
 ## Important Notes
 
-- Trust GitLab CLI authentication
-- Don't pre-check for duplicates
-- Update frontmatter only after successful creation
-- Keep operations simple and atomic
+- **Trust GitLab CLI authentication** - Don't pre-check
+- **Don't pre-check for duplicates** - Let GitLab handle it
+- **Update frontmatter only after successful creation** - Maintain data integrity
+- **Keep operations simple and atomic** - One issue at a time
+- **Support any GitLab host** - gitlab.com, self-hosted, custom domains
+- **Cross-platform sed** - Always use `-i.bak` for macOS compatibility
+- **Parse text output** - `glab issue create` doesn't support JSON output
+- **Sequential task creation** - More reliable than parallel for large descriptions

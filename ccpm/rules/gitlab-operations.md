@@ -54,24 +54,51 @@ glab issue view {iid} --output json
 
 ### Create Issue
 ```bash
-# Always specify repo to avoid defaulting to wrong repository
+# Detect GitLab host and repository (supports self-hosted)
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-REPO=$(echo "$remote_url" | sed 's|.*gitlab.com[:/]||' | sed 's|\.git$||')
-[ -z "$REPO" ] && REPO="user/repo"
 
-# Create issue and get IID
-issue_iid=$(glab issue create \
-  --repo "$REPO" \
-  --title "{title}" \
-  --description "$(cat {file})" \
-  --label "{labels}" \
-  --output json | jq -r '.iid')
+# Extract GitLab host and repository path
+if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+  # HTTPS: https://gitlab.company.com/owner/repo.git
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
+elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
+  # SSH: git@gitlab.company.com:owner/repo.git
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+else
+  echo "❌ Could not parse git remote URL: $remote_url"
+  exit 1
+fi
+
+# Create issue (NOTE: glab issue create does NOT support --output json)
+# Must parse text output to extract IID
+glab issue create \
+  -R "$REPO" \
+  -t "{title}" \
+  -d "$(cat {file})" \
+  -l "{labels}" \
+  --no-editor > /tmp/issue-result.txt 2>&1
+
+# Parse output to extract issue IID
+# Output format: https://{host}/{owner}/{repo}/-/issues/{iid}
+issue_iid=$(grep -o 'issues/[0-9]*' /tmp/issue-result.txt | head -1 | cut -d'/' -f2)
+
+if [ -z "$issue_iid" ]; then
+  echo "❌ Failed to create issue"
+  cat /tmp/issue-result.txt
+  exit 1
+fi
 ```
 
 **Important Notes:**
+- **`glab issue create` does NOT support `--output json`** - must parse text output
+- Use regex to extract IID from URL in text output
+- Support self-hosted GitLab by detecting host dynamically
 - Use `--description "$(cat file)"` instead of `--body-file` (not supported)
 - GitLab returns `iid` (internal ID), not `number`
-- Use `jq` to parse JSON output
+- Use `-R` instead of `--repo` (shorter)
+- Always use `--no-editor` for non-interactive mode
 
 ### Update Issue
 ```bash
@@ -134,13 +161,24 @@ glab issue list --output json
 # Get full repo path with namespace
 repo_path=$(glab repo view --output json | jq -r '.path_with_namespace')
 
-# Build issue URL
-issue_url="https://gitlab.com/$repo_path/-/issues/$iid"
+# Build issue URL using detected GitLab host (from git remote)
+remote_url=$(git remote get-url origin 2>/dev/null || echo "")
+if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+elif [[ "$remote_url" =~ ^git@([^:]+): ]]; then
+  GITLAB_HOST="${BASH_REMATCH[1]}"
+else
+  GITLAB_HOST="gitlab.com"  # fallback
+fi
+
+issue_url="https://$GITLAB_HOST/$repo_path/-/issues/$iid"
 ```
 
 **Important Notes:**
 - GitLab URLs use `/-/issues/` format (note the `/-/`)
 - Use `.path_with_namespace` from JSON (supports nested groups)
+- Always detect GitLab host from git remote (supports self-hosted)
+- Don't hardcode `gitlab.com` - use dynamic host detection
 
 ### Create Labels
 ```bash
@@ -160,8 +198,10 @@ If any glab command fails:
 
 - **ALWAYS** check remote origin before ANY write operation to GitLab
 - Trust that glab CLI is installed and authenticated
-- Use `--output json` or `-F json` for structured output
-- Parse with `jq` for specific fields
+- **`glab issue create` does NOT support `--output json`** - parse text output instead
+- Use `--output json` or `-F json` for `glab issue view` and `glab issue list` (supported)
+- Parse with `jq` for specific fields from view/list commands
+- Parse text output with `grep -o 'issues/[0-9]*'` for issue create commands
 - Keep operations atomic - one glab command per action
 - Don't check rate limits preemptively
 - GitLab uses `iid` (internal ID) not `number`
@@ -169,3 +209,5 @@ If any glab command fails:
 - Colors need `#` prefix (e.g., `#0E8A16`)
 - URLs use `/-/issues/` format
 - Native issue linking replaces gh-sub-issue extension
+- **Support self-hosted GitLab** - always detect host from git remote dynamically
+- Don't hardcode `gitlab.com` - use bash regex to extract host from remote URL

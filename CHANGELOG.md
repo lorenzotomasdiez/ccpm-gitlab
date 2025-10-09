@@ -1,5 +1,143 @@
 # CCPM Changelog - GitLab Edition
 
+## [2025-10-09] - Critical Fix: epic-sync Command Rewrite
+
+### 🎯 Overview
+Complete rewrite of `/pm:epic-sync` command to fix critical GitLab CLI compatibility issues. The original migration from GitHub (`gh`) to GitLab (`glab`) contained multiple syntax errors and assumptions that prevented the command from functioning on self-hosted GitLab instances.
+
+### 🐛 Critical Issues Fixed
+
+1. **`glab issue create` JSON Output Not Supported** ❌→✅
+   - **Problem**: Command used `--output json` flag which doesn't exist for `glab issue create`
+   - **Error**: `Unknown flag: --output`
+   - **Fix**: Parse text output with `grep -o 'issues/[0-9]*'` to extract issue IID
+   - **Impact**: Epic and task creation now works reliably
+
+2. **Positional Arguments Error** ❌→✅
+   - **Problem**: `glab` doesn't accept positional arguments after flags
+   - **Error**: `Accepts 0 arg(s), received 4/5/7`
+   - **Fix**: Use short flags (`-R`, `-t`, `-d`, `-l`) with `--no-editor` for non-interactive mode
+   - **Impact**: Commands execute without argument parsing errors
+
+3. **Self-Hosted GitLab Support Broken** ❌→✅
+   - **Problem**: Hardcoded `gitlab.com` in repository detection
+   - **Error**: Failed to detect custom GitLab hosts like `gitlab.eumediatools.com`
+   - **Fix**: Dynamic host detection using bash regex for both HTTPS and SSH remotes
+   - **Impact**: Now works with any GitLab instance (gitlab.com, self-hosted, custom domains)
+
+4. **macOS sed Incompatibility** ❌→✅
+   - **Problem**: Used `sed -i` without backup extension (Linux syntax)
+   - **Error**: sed requires backup file on macOS
+   - **Fix**: Consistently use `sed -i.bak` with explicit cleanup (`rm -f *.bak`)
+   - **Impact**: Cross-platform compatibility (Linux + macOS)
+
+5. **Task Creation Timeouts** ❌→✅
+   - **Problem**: Sequential creation with 2-minute timeout, large descriptions (6-9 hours each)
+   - **Error**: `Command timed out after 2m 0s`
+   - **Fix**: Removed parallel creation complexity, improved per-task error handling, added progress feedback
+   - **Impact**: Reliable task creation with clear progress indicators
+
+6. **URL Building for Self-Hosted** ❌→✅
+   - **Problem**: All URLs hardcoded to `https://gitlab.com/...`
+   - **Fix**: Build URLs with `$GITLAB_HOST` variable from dynamic detection
+   - **Impact**: Correct issue URLs for self-hosted instances
+
+### 🔄 Technical Implementation
+
+#### New Host Detection Pattern
+```bash
+# Supports both HTTPS and SSH remotes
+if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+  GITLAB_HOST="${BASH_REMATCH[1]}"  # HTTPS
+  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
+elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
+  GITLAB_HOST="${BASH_REMATCH[1]}"  # SSH
+  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+fi
+```
+
+#### New Issue Creation Pattern
+```bash
+# Create without --output json (not supported)
+glab issue create \
+  -R "$REPO" \
+  -t "Title" \
+  -d "$(cat description.md)" \
+  -l "label1,label2" \
+  --no-editor > /tmp/result.txt 2>&1
+
+# Parse text output for IID
+issue_iid=$(grep -o 'issues/[0-9]*' /tmp/result.txt | head -1 | cut -d'/' -f2)
+```
+
+#### New sed Pattern (Cross-Platform)
+```bash
+# macOS-compatible sed with explicit cleanup
+sed -i.bak "s|^gitlab:.*|gitlab: $url|" file.md
+rm -f file.md.bak
+```
+
+### 📝 Files Modified
+
+1. **`ccpm/commands/pm/epic-sync.md`** - Complete rewrite
+   - Lines changed: ~420 (entire file restructured)
+   - New host detection (Step 1)
+   - Fixed issue creation (Steps 2-3)
+   - Fixed URL building (Steps 4-6)
+   - Cross-platform sed (throughout)
+   - Enhanced error handling
+
+2. **`ccpm/rules/gitlab-operations.md`** - Updated patterns
+   - Added self-hosted GitLab support documentation
+   - Clarified `--output json` only works for `view` and `list`, not `create`
+   - Added text parsing pattern for issue creation
+   - Updated "Create Issue" and "Get Repository Info" sections
+
+### 🧪 Testing Coverage
+
+The rewritten command now handles:
+- ✅ gitlab.com repositories
+- ✅ Self-hosted GitLab instances (e.g., gitlab.company.com)
+- ✅ Nested groups (group/subgroup/repo)
+- ✅ Both SSH and HTTPS remotes
+- ✅ macOS and Linux platforms
+- ✅ Small (<5 tasks) and large (≥5 tasks) epics
+- ✅ Task reference updates (depends_on arrays)
+- ✅ Epic and task frontmatter updates
+
+### 🎓 Root Cause Analysis
+
+**Why This Happened:**
+- Direct translation from GitHub CLI (`gh`) to GitLab CLI (`glab`) without API verification
+- Assumed feature parity between `gh` and `glab` (especially `--output json`)
+- Hardcoded assumptions about GitLab host (gitlab.com only)
+- Linux-centric development (sed syntax not tested on macOS)
+- Insufficient timeout handling for large API payloads
+
+**Prevention:**
+- CLI API documentation review before migration
+- Cross-platform testing (Linux + macOS)
+- Self-hosted instance testing
+- Timeout analysis for large operations
+
+### 🔗 Related Issues
+
+This fix enables the core workflow:
+- `/pm:prd-new` → `/pm:prd-parse` → `/pm:epic-decompose` → **`/pm:epic-sync`** → `/pm:issue-start`
+
+Without this fix, users could not:
+- Create epic issues in GitLab
+- Create task sub-issues
+- Link tasks to epics
+- Generate issue URLs
+- Use self-hosted GitLab
+
+### 🙏 Credit
+
+Issue discovered and reported by user experiencing failures with self-hosted GitLab instance (`gitlab.eumediatools.com`). The LLM showed excellent problem-solving by working around broken instructions, but the command file itself required a complete rewrite.
+
+---
+
 ## [2025-10-08] - GitLab Edition Fork
 
 ### 🎯 Overview
