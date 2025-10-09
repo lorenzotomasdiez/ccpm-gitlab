@@ -185,46 +185,60 @@ echo "Creating $task_count task issues..."
 Create all tasks sequentially (parallel creation causes timeouts):
 
 ```bash
+# Create script file to avoid multi-line parsing issues
+cat > /tmp/create-tasks.sh << EOFSCRIPT
+#!/bin/bash
+set -e
+
+# Variables from parent
+REPO="$REPO"
+ARGUMENTS="$ARGUMENTS"
+task_count=$task_count
+
 # Initialize task mapping file
 > /tmp/task-mapping.txt
 
 # Create each task issue
 task_num=0
-for task_file in .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md; do
-  [ -f "$task_file" ] || continue
+for task_file in .claude/epics/\$ARGUMENTS/[0-9][0-9][0-9].md; do
+  [ -f "\$task_file" ] || continue
 
-  task_num=$((task_num + 1))
-  echo "Creating task $task_num/$task_count..."
+  task_num=\$((task_num + 1))
+  echo "Creating task \$task_num/\$task_count..."
 
   # Extract task name from frontmatter
-  task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
+  task_name=\$(grep '^name:' "\$task_file" | sed 's/^name: *//')
 
   # Strip frontmatter from task content
-  sed '1,/^---$/d; 1,/^---$/d' "$task_file" > /tmp/task-body.md
+  sed '1,/^---\$/d; 1,/^---\$/d' "\$task_file" > /tmp/task-body.md
 
   # Create sub-issue with labels
   # NOTE: --linked-issues flag causes 1m+ timeouts, link separately after creation
   glab issue create \
-    -R "$REPO" \
-    -t "$task_name" \
-    -d "$(cat /tmp/task-body.md)" \
-    -l "task,epic:$ARGUMENTS" \
+    -R "\$REPO" \
+    -t "\$task_name" \
+    -d "\$(cat /tmp/task-body.md)" \
+    -l "task,epic:\$ARGUMENTS" \
     --no-editor > /tmp/task-result.txt 2>&1
 
   # Parse output to extract task IID
-  task_iid=$(grep -o 'issues/[0-9]*' /tmp/task-result.txt | head -1 | cut -d'/' -f2)
+  task_iid=\$(grep -o 'issues/[0-9]*' /tmp/task-result.txt | head -1 | cut -d'/' -f2)
 
-  if [ -z "$task_iid" ]; then
-    echo "⚠️ Failed to create task: $task_name"
+  if [ -z "\$task_iid" ]; then
+    echo "⚠️ Failed to create task: \$task_name"
     cat /tmp/task-result.txt
     continue
   fi
 
-  echo "  ✅ Created task #${task_iid}"
+  echo "  ✅ Created task #\${task_iid}"
 
   # Record mapping for renaming
-  echo "$task_file:$task_iid" >> /tmp/task-mapping.txt
+  echo "\$task_file:\$task_iid" >> /tmp/task-mapping.txt
 done
+EOFSCRIPT
+
+# Execute the script
+bash /tmp/create-tasks.sh
 
 # Verify we created some tasks
 if [ ! -s /tmp/task-mapping.txt ]; then
@@ -235,13 +249,7 @@ fi
 echo "✅ Created all task issues"
 
 # Link tasks to epic (do this after all tasks are created to avoid timeouts)
-echo "Linking tasks to epic #${epic_iid}..."
-while IFS=: read -r task_file task_iid; do
-  glab issue update "$task_iid" \
-    --link-issue "$epic_iid" \
-    --link-type "relates_to" 2>/dev/null || echo "  ⚠️ Could not link #${task_iid} to epic"
-done < /tmp/task-mapping.txt
-echo "✅ Task linking complete"
+echo "Linking tasks to epic #${epic_iid}..." && while IFS=: read -r task_file task_iid; do glab issue update "$task_iid" --link-issue "$epic_iid" --link-type "relates_to" 2>/dev/null || echo "  ⚠️ Could not link #${task_iid} to epic"; done < /tmp/task-mapping.txt && echo "✅ Task linking complete"
 ```
 
 **Key Changes:**
@@ -253,50 +261,52 @@ echo "✅ Task linking complete"
 
 ### 4. Rename Task Files and Update References
 
-First, build a mapping of old numbers to new issue iids:
+Build a mapping and rename files (using script to avoid multi-line parsing issues):
 ```bash
-# Create mapping from old task numbers (001, 002, etc.) to new issue iids
+cat > /tmp/rename-tasks.sh << EOFSCRIPT
+#!/bin/bash
+set -e
+
+GITLAB_HOST="$GITLAB_HOST"
+REPO="$REPO"
+
+# Build mapping from old task numbers to new issue iids
 > /tmp/id-mapping.txt
 while IFS=: read -r task_file task_iid; do
-  # Extract old number from filename (e.g., 001 from 001.md)
-  old_num=$(basename "$task_file" .md)
-  echo "$old_num:$task_iid" >> /tmp/id-mapping.txt
+  old_num=\$(basename "\$task_file" .md)
+  echo "\$old_num:\$task_iid" >> /tmp/id-mapping.txt
 done < /tmp/task-mapping.txt
-```
 
-Then rename files and update all references:
-```bash
 # Process each task file
 while IFS=: read -r task_file task_iid; do
-  new_name="$(dirname "$task_file")/${task_iid}.md"
+  new_name="\$(dirname "\$task_file")/\${task_iid}.md"
 
   # Read the file content
-  content=$(cat "$task_file")
+  content=\$(cat "\$task_file")
 
   # Update depends_on and conflicts_with references
   while IFS=: read -r old_num new_num; do
-    # Update arrays like [001, 002] to use new issue iids
-    content=$(echo "$content" | sed "s/\b$old_num\b/$new_num/g")
+    content=\$(echo "\$content" | sed "s/\\b\$old_num\\b/\$new_num/g")
   done < /tmp/id-mapping.txt
 
   # Write updated content to new file
-  echo "$content" > "$new_name"
+  echo "\$content" > "\$new_name"
 
   # Remove old file if different from new
-  [ "$task_file" != "$new_name" ] && rm "$task_file"
+  [ "\$task_file" != "\$new_name" ] && rm "\$task_file"
 
   # Update gitlab field in frontmatter
-  # Build GitLab URL with detected host
-  gitlab_url="https://$GITLAB_HOST/$REPO/-/issues/$task_iid"
-
-  # Update frontmatter with GitLab URL and current timestamp
-  current_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  gitlab_url="https://\$GITLAB_HOST/\$REPO/-/issues/\$task_iid"
+  current_date=\$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
   # Use sed with backup for macOS compatibility
-  sed -i.bak "s|^gitlab:.*|gitlab: $gitlab_url|" "$new_name"
-  sed -i.bak "s|^updated:.*|updated: $current_date|" "$new_name"
-  rm -f "${new_name}.bak"
+  sed -i.bak "s|^gitlab:.*|gitlab: \$gitlab_url|" "\$new_name"
+  sed -i.bak "s|^updated:.*|updated: \$current_date|" "\$new_name"
+  rm -f "\${new_name}.bak"
 done < /tmp/task-mapping.txt
+EOFSCRIPT
+
+bash /tmp/rename-tasks.sh
 ```
 
 **Key Changes:**
@@ -328,22 +338,8 @@ cat > /tmp/tasks-section.md << 'EOF'
 ## Tasks Created
 EOF
 
-# Add each task with its real issue iid
-for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do
-  [ -f "$task_file" ] || continue
-
-  # Get issue iid (filename without .md)
-  issue_iid=$(basename "$task_file" .md)
-
-  # Get task name from frontmatter
-  task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
-
-  # Get parallel status
-  parallel=$(grep '^parallel:' "$task_file" | sed 's/^parallel: *//')
-
-  # Add to tasks section
-  echo "- [ ] #${issue_iid} - ${task_name} (parallel: ${parallel})" >> /tmp/tasks-section.md
-done
+# Add each task with its real issue iid (single-line loop)
+for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do [ -f "$task_file" ] || continue; issue_iid=$(basename "$task_file" .md); task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//'); parallel=$(grep '^parallel:' "$task_file" | sed 's/^parallel: *//'); echo "- [ ] #${issue_iid} - ${task_name} (parallel: ${parallel})" >> /tmp/tasks-section.md; done
 
 # Add summary statistics
 total_count=$(ls .claude/epics/$ARGUMENTS/[0-9]*.md 2>/dev/null | wc -l | tr -d ' ')
@@ -390,15 +386,8 @@ Epic: #${epic_iid} - https://${GITLAB_HOST}/${REPO}/-/issues/${epic_iid}
 Tasks:
 EOF
 
-# Add each task mapping
-for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do
-  [ -f "$task_file" ] || continue
-
-  issue_iid=$(basename "$task_file" .md)
-  task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//')
-
-  echo "- #${issue_iid}: ${task_name} - https://${GITLAB_HOST}/${REPO}/-/issues/${issue_iid}" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md
-done
+# Add each task mapping (single-line loop)
+for task_file in .claude/epics/$ARGUMENTS/[0-9]*.md; do [ -f "$task_file" ] || continue; issue_iid=$(basename "$task_file" .md); task_name=$(grep '^name:' "$task_file" | sed 's/^name: *//'); echo "- #${issue_iid}: ${task_name} - https://${GITLAB_HOST}/${REPO}/-/issues/${issue_iid}" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md; done
 
 # Add sync timestamp
 echo "" >> .claude/epics/$ARGUMENTS/gitlab-mapping.md

@@ -56,6 +56,12 @@ Complete rewrite of `/pm:epic-sync` command to fix critical GitLab CLI compatibi
    - **Fix**: Create tasks without linking, then link all tasks to epic after creation
    - **Impact**: Task creation completes in seconds instead of minutes
 
+9. **Multi-line Loop Parsing** ❌→✅
+   - **Problem**: Bash tool flattens multi-line loops causing syntax errors
+   - **Error**: `parse error near 'do'`, `unexpected EOF while looking for matching ')'`
+   - **Fix**: Use heredoc script files for complex loops, single-line with semicolons for simple loops
+   - **Impact**: Commands execute reliably through Bash tool in zsh environment
+
 ### 🔄 Technical Implementation
 
 #### New Host Detection Pattern (POSIX Compliant)
@@ -96,10 +102,24 @@ rm -f file.md.bak
 # Create tasks first (fast)
 glab issue create -R "$REPO" -t "$title" -d "$desc" -l "task" --no-editor
 
-# Link all tasks to epic AFTER creation (avoids timeout)
-while IFS=: read -r task_file task_iid; do
-  glab issue update "$task_iid" --link-issue "$epic_iid" --link-type "relates_to"
-done < /tmp/task-mapping.txt
+# Link all tasks to epic AFTER creation (single-line to avoid parsing issues)
+while IFS=: read -r task_file task_iid; do glab issue update "$task_iid" --link-issue "$epic_iid" --link-type "relates_to"; done < /tmp/task-mapping.txt
+```
+
+#### Multi-line Loop Patterns
+```bash
+# Complex loops: Use script files
+cat > /tmp/script.sh << 'EOFSCRIPT'
+#!/bin/bash
+for x in 1 2 3; do
+  # Complex multi-line logic here
+  echo "Processing $x"
+done
+EOFSCRIPT
+bash /tmp/script.sh
+
+# Simple loops: Use single-line with semicolons
+for x in 1 2 3; do echo "Item: $x"; done
 ```
 
 ### 📝 Files Modified
