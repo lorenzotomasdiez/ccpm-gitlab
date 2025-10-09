@@ -62,6 +62,12 @@ Complete rewrite of `/pm:epic-sync` command to fix critical GitLab CLI compatibi
    - **Fix**: Use heredoc script files for complex loops, single-line with semicolons for simple loops
    - **Impact**: Commands execute reliably through Bash tool in zsh environment
 
+10. **Incorrect Label Flags** ❌→✅
+   - **Problem**: Used `--add-label` and `--labels` (GitHub CLI or incorrect syntax)
+   - **Error**: `Unknown flag: --add-label`
+   - **Fix**: Use `--label` (singular) to add/replace, `--unlabel` to remove
+   - **Impact**: Label operations work correctly without errors
+
 ### 🔄 Technical Implementation
 
 #### New Host Detection Pattern (POSIX Compliant)

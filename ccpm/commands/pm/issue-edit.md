@@ -55,8 +55,10 @@ glab issue update $ARGUMENTS --description "$(cat {updated_task_file})"
 
 If labels changed:
 ```bash
-glab issue update $ARGUMENTS --labels "{new_labels}"
+glab issue update $ARGUMENTS --label "{new_labels}"
 ```
+
+**Note:** Use `--label` (singular) not `--labels`. For multiple labels, use comma-separated: `--label "bug,urgent,epic:feature"`
 
 ### 5. Output
 

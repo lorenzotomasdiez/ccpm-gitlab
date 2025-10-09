@@ -107,8 +107,18 @@ fi
 ### Update Issue
 ```bash
 # ALWAYS check remote origin first!
-glab issue update {iid} --add-label "{label}" --assignee @me
+glab issue update {iid} --label "{label}" --assignee @me
 ```
+
+**Important Notes:**
+- Use `--label` or `-l` to add/replace labels (comma-separated for multiple)
+- Use `--unlabel` or `-u` to remove labels
+- **NO `--add-label` flag exists** (that's GitHub CLI syntax)
+- **NO `--labels` flag exists** (use `--label` singular)
+- Examples:
+  - Add labels: `glab issue update 123 --label "bug,urgent"`
+  - Remove labels: `glab issue update 123 --unlabel "wontfix"`
+  - Update assignee: `glab issue update 123 --assignee @me`
 
 ### Add Comment (Note)
 ```bash
