@@ -61,15 +61,19 @@ Extract both the GitLab host and repository path from git remote:
 # Get remote URL
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
 
-# Extract GitLab host (supports gitlab.com and self-hosted)
-if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+# Extract GitLab host and repo (POSIX compliant - works in bash, zsh, sh)
+if echo "$remote_url" | grep -q '^https://'; then
   # HTTPS: https://gitlab.company.com/owner/repo.git
-  GITLAB_HOST="${BASH_REMATCH[1]}"
-  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
-elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^https://||' | sed 's|/.*||')
+  REPO=$(echo "$remote_url" | sed 's|^https://[^/]*/||' | sed 's|\.git$||')
+elif echo "$remote_url" | grep -q '^http://'; then
+  # HTTP: http://gitlab.company.com/owner/repo.git
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^http://||' | sed 's|/.*||')
+  REPO=$(echo "$remote_url" | sed 's|^http://[^/]*/||' | sed 's|\.git$||')
+elif echo "$remote_url" | grep -q '^git@'; then
   # SSH: git@gitlab.company.com:owner/repo.git
-  GITLAB_HOST="${BASH_REMATCH[1]}"
-  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^git@||' | sed 's|:.*||')
+  REPO=$(echo "$remote_url" | sed 's|^git@[^:]*:||' | sed 's|\.git$||')
 else
   echo "❌ Could not parse git remote URL: $remote_url"
   exit 1
@@ -84,6 +88,7 @@ This pattern works for:
 - `git@gitlab.com:owner/repo.git`
 - `https://gitlab.company.com/group/subgroup/repo.git`
 - `git@gitlab.company.com:group/subgroup/repo.git`
+- Works in bash, zsh, sh (POSIX compliant)
 
 ### 2. Create Epic Issue
 
@@ -197,14 +202,13 @@ for task_file in .claude/epics/$ARGUMENTS/[0-9][0-9][0-9].md; do
   # Strip frontmatter from task content
   sed '1,/^---$/d; 1,/^---$/d' "$task_file" > /tmp/task-body.md
 
-  # Create sub-issue with labels and link to epic
+  # Create sub-issue with labels
+  # NOTE: --linked-issues flag causes 1m+ timeouts, link separately after creation
   glab issue create \
     -R "$REPO" \
     -t "$task_name" \
     -d "$(cat /tmp/task-body.md)" \
     -l "task,epic:$ARGUMENTS" \
-    --linked-issues "$epic_iid" \
-    --link-type "relates_to" \
     --no-editor > /tmp/task-result.txt 2>&1
 
   # Parse output to extract task IID
@@ -229,12 +233,21 @@ if [ ! -s /tmp/task-mapping.txt ]; then
 fi
 
 echo "✅ Created all task issues"
+
+# Link tasks to epic (do this after all tasks are created to avoid timeouts)
+echo "Linking tasks to epic #${epic_iid}..."
+while IFS=: read -r task_file task_iid; do
+  glab issue update "$task_iid" \
+    --link-issue "$epic_iid" \
+    --link-type "relates_to" 2>/dev/null || echo "  ⚠️ Could not link #${task_iid} to epic"
+done < /tmp/task-mapping.txt
+echo "✅ Task linking complete"
 ```
 
 **Key Changes:**
-- Removed parallel creation (causes timeouts with large descriptions)
-- Sequential is reliable and shows progress
-- Skip parallel agent complexity
+- Removed `--linked-issues` from creation (causes 1m+ timeouts per task)
+- Link tasks to epic AFTER all tasks are created (faster, more reliable)
+- Continue on link failures (tasks are created, linking is secondary)
 - Better error handling per task
 - Progress feedback for user
 

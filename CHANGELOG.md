@@ -5,6 +5,8 @@
 ### 🎯 Overview
 Complete rewrite of `/pm:epic-sync` command to fix critical GitLab CLI compatibility issues. The original migration from GitHub (`gh`) to GitLab (`glab`) contained multiple syntax errors and assumptions that prevented the command from functioning on self-hosted GitLab instances.
 
+**Update:** Added zsh compatibility by replacing bash-specific regex patterns with POSIX-compliant sed/grep commands.
+
 ### 🐛 Critical Issues Fixed
 
 1. **`glab issue create` JSON Output Not Supported** ❌→✅
@@ -42,17 +44,29 @@ Complete rewrite of `/pm:epic-sync` command to fix critical GitLab CLI compatibi
    - **Fix**: Build URLs with `$GITLAB_HOST` variable from dynamic detection
    - **Impact**: Correct issue URLs for self-hosted instances
 
+7. **zsh Compatibility** ❌→✅
+   - **Problem**: Used bash-specific regex (`[[ =~ ]]` and `${BASH_REMATCH}`)
+   - **Error**: `parse error near '('` in zsh shells
+   - **Fix**: Replace with POSIX-compliant `grep -q` and `sed` patterns
+   - **Impact**: Works in bash, zsh, sh, and other POSIX shells
+
+8. **`--linked-issues` Flag Timeout** ❌→✅
+   - **Problem**: Using `--linked-issues` during task creation causes 1m+ timeouts per task
+   - **Error**: `Command timed out after 3m 0s` when creating 8 tasks
+   - **Fix**: Create tasks without linking, then link all tasks to epic after creation
+   - **Impact**: Task creation completes in seconds instead of minutes
+
 ### 🔄 Technical Implementation
 
-#### New Host Detection Pattern
+#### New Host Detection Pattern (POSIX Compliant)
 ```bash
-# Supports both HTTPS and SSH remotes
-if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
-  GITLAB_HOST="${BASH_REMATCH[1]}"  # HTTPS
-  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
-elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
-  GITLAB_HOST="${BASH_REMATCH[1]}"  # SSH
-  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+# Supports both HTTPS and SSH remotes (works in bash, zsh, sh)
+if echo "$remote_url" | grep -q '^https://'; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^https://||' | sed 's|/.*||')
+  REPO=$(echo "$remote_url" | sed 's|^https://[^/]*/||' | sed 's|\.git$||')
+elif echo "$remote_url" | grep -q '^git@'; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^git@||' | sed 's|:.*||')
+  REPO=$(echo "$remote_url" | sed 's|^git@[^:]*:||' | sed 's|\.git$||')
 fi
 ```
 
@@ -75,6 +89,17 @@ issue_iid=$(grep -o 'issues/[0-9]*' /tmp/result.txt | head -1 | cut -d'/' -f2)
 # macOS-compatible sed with explicit cleanup
 sed -i.bak "s|^gitlab:.*|gitlab: $url|" file.md
 rm -f file.md.bak
+```
+
+#### Task Linking After Creation
+```bash
+# Create tasks first (fast)
+glab issue create -R "$REPO" -t "$title" -d "$desc" -l "task" --no-editor
+
+# Link all tasks to epic AFTER creation (avoids timeout)
+while IFS=: read -r task_file task_iid; do
+  glab issue update "$task_iid" --link-issue "$epic_iid" --link-type "relates_to"
+done < /tmp/task-mapping.txt
 ```
 
 ### 📝 Files Modified
@@ -101,6 +126,7 @@ The rewritten command now handles:
 - ✅ Nested groups (group/subgroup/repo)
 - ✅ Both SSH and HTTPS remotes
 - ✅ macOS and Linux platforms
+- ✅ bash, zsh, sh, and other POSIX shells
 - ✅ Small (<5 tasks) and large (≥5 tasks) epics
 - ✅ Task reference updates (depends_on arrays)
 - ✅ Epic and task frontmatter updates

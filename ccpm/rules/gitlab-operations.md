@@ -57,15 +57,19 @@ glab issue view {iid} --output json
 # Detect GitLab host and repository (supports self-hosted)
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
 
-# Extract GitLab host and repository path
-if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
+# Extract GitLab host and repo (POSIX compliant - works in bash, zsh, sh)
+if echo "$remote_url" | grep -q '^https://'; then
   # HTTPS: https://gitlab.company.com/owner/repo.git
-  GITLAB_HOST="${BASH_REMATCH[1]}"
-  REPO=$(echo "$remote_url" | sed "s|https\?://${GITLAB_HOST}/||" | sed 's|\.git$||')
-elif [[ "$remote_url" =~ ^git@([^:]+):(.+)$ ]]; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^https://||' | sed 's|/.*||')
+  REPO=$(echo "$remote_url" | sed 's|^https://[^/]*/||' | sed 's|\.git$||')
+elif echo "$remote_url" | grep -q '^http://'; then
+  # HTTP: http://gitlab.company.com/owner/repo.git
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^http://||' | sed 's|/.*||')
+  REPO=$(echo "$remote_url" | sed 's|^http://[^/]*/||' | sed 's|\.git$||')
+elif echo "$remote_url" | grep -q '^git@'; then
   # SSH: git@gitlab.company.com:owner/repo.git
-  GITLAB_HOST="${BASH_REMATCH[1]}"
-  REPO=$(echo "${BASH_REMATCH[2]}" | sed 's|\.git$||')
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^git@||' | sed 's|:.*||')
+  REPO=$(echo "$remote_url" | sed 's|^git@[^:]*:||' | sed 's|\.git$||')
 else
   echo "❌ Could not parse git remote URL: $remote_url"
   exit 1
@@ -163,10 +167,12 @@ repo_path=$(glab repo view --output json | jq -r '.path_with_namespace')
 
 # Build issue URL using detected GitLab host (from git remote)
 remote_url=$(git remote get-url origin 2>/dev/null || echo "")
-if [[ "$remote_url" =~ ^https?://([^/]+)/ ]]; then
-  GITLAB_HOST="${BASH_REMATCH[1]}"
-elif [[ "$remote_url" =~ ^git@([^:]+): ]]; then
-  GITLAB_HOST="${BASH_REMATCH[1]}"
+if echo "$remote_url" | grep -q '^https://'; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^https://||' | sed 's|/.*||')
+elif echo "$remote_url" | grep -q '^http://'; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^http://||' | sed 's|/.*||')
+elif echo "$remote_url" | grep -q '^git@'; then
+  GITLAB_HOST=$(echo "$remote_url" | sed 's|^git@||' | sed 's|:.*||')
 else
   GITLAB_HOST="gitlab.com"  # fallback
 fi
